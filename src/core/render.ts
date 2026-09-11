@@ -2,7 +2,7 @@ import { getTemplate } from '../templates'
 import type { Format, ProjectState, TextLayer } from './types'
 import { palette } from './color'
 import { cropGeometry } from './crop'
-import { birthdayText, graphemes } from './project'
+import { birthdayText, graphemes, projectCrop } from './project'
 import { fitText } from './text'
 
 export const fontFamily = {
@@ -68,7 +68,7 @@ export function renderArtwork(
   if (canvas.height !== height) canvas.height = height
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('浏览器无法创建绘图区域，请刷新后重试。')
-  const colors = palette(project.color)
+  const colors = palette(project.color, getTemplate(project.templateId).colorMode)
   ctx.setTransform(width / layout.width, 0, 0, width / layout.width, 0, 0)
   ctx.clearRect(0, 0, layout.width, layout.height)
   ctx.fillStyle = colors.paper
@@ -84,7 +84,7 @@ export function renderArtwork(
       ctx.beginPath()
       ctx.roundRect(layer.x, layer.y, layer.width, layer.height, layer.radius ?? 0)
       ctx.clip()
-      const crop = cropGeometry(bitmap.width, bitmap.height, layer, project.crops[format])
+      const crop = cropGeometry(bitmap.width, bitmap.height, layer, projectCrop(project, format))
       // Transparent uploads sit on the same paper as the rest of the composition.
       ctx.fillStyle = colors.paper
       ctx.fillRect(layer.x, layer.y, layer.width, layer.height)

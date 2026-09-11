@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { KeyboardEvent, PointerEvent } from 'react'
 import type { Crop, Format, ProjectState } from '../core/types'
 import { dragCrop } from '../core/crop'
+import { projectCrop } from '../core/project'
 import { getTemplate } from '../templates'
 import { photoFrame, prepareFonts, renderArtwork } from '../core/render'
 import type { RenderResult } from '../core/render'
@@ -93,7 +94,7 @@ export function ArtworkCanvas({
       id: event.pointerId,
       x: event.clientX,
       y: event.clientY,
-      crop: project.crops[format],
+      crop: projectCrop(project, format),
       ratio,
     }
   }
@@ -130,7 +131,7 @@ export function ArtworkCanvas({
         bitmap.width,
         bitmap.height,
         photoFrame(project, format),
-        project.crops[format],
+        projectCrop(project, format),
         event.key === 'ArrowLeft' ? -delta : event.key === 'ArrowRight' ? delta : 0,
         event.key === 'ArrowUp' ? -delta : event.key === 'ArrowDown' ? delta : 0,
       ),

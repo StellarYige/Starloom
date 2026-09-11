@@ -2,6 +2,7 @@ import { Check, Heart, Sparkle } from 'lucide-react'
 import { templates, getTemplate } from '../templates'
 import type { ProjectState } from '../core/types'
 import { ArtworkCanvas } from './ArtworkCanvas'
+import { switchTemplate } from '../core/project'
 
 export function ThemeSelector({
   project,
@@ -18,13 +19,14 @@ export function ThemeSelector({
       <div className="theme-list">
         {templates.map((template, index) => {
           const selected = template.id === project.templateId
-          const preview = { ...project, templateId: template.id }
+          const preview = switchTemplate(project, template.id, bitmap ?? { width: 1, height: 1 })
           return (
             <button
               key={template.id}
               className={`theme-card ${selected ? 'is-selected' : ''}`}
               aria-label={`选择${template.name}主题`}
               aria-pressed={selected}
+              disabled={!bitmap}
               onClick={() => onSelect(template.id)}
             >
               <div className="theme-card-art">

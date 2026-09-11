@@ -1,0 +1,65 @@
+{
+  "version": "0.2.0",
+  "browser": "152.0.4191.66",
+  "baselineSourceCommit": "a4eef46b386c20fce084b288ece51b45081f5c28",
+  "birthdayLetterBaseline": {
+    "avatar": {
+      "width": 1600,
+      "height": 1600,
+      "meanChannelDifference": 0,
+      "maxChannelDifference": 0,
+      "differentChannels": 0
+    },
+    "poster": {
+      "width": 2400,
+      "height": 3000,
+      "meanChannelDifference": 0.000004131944444444444,
+      "maxChannelDifference": 2,
+      "differentChannels": 116
+    }
+  },
+  "images": [
+    {
+      "file": "birthday-letter-avatar.png",
+      "width": 1600,
+      "height": 1600,
+      "bytes": 2247542,
+      "sha256": "063310244c6d4d9d56bf89280eba57ee86c128efcd834ae97cb93944454a6615"
+    },
+    {
+      "file": "birthday-letter-poster.png",
+      "width": 2400,
+      "height": 3000,
+      "bytes": 3762716,
+      "sha256": "868f0f13ab8bd1571dbea42b6e01f9b7ec8e92e2242ba9fe34d3dba0a59a63c7"
+    },
+    {
+      "file": "center-stage-avatar.png",
+      "width": 1600,
+      "height": 1600,
+      "bytes": 1451243,
+      "sha256": "f0309ee8000963d0ef16d7cecb3ba3d7761b5257bd2748f92a4ab86f0d73309a"
+    },
+    {
+      "file": "center-stage-poster.png",
+      "width": 2400,
+      "height": 3000,
+      "bytes": 3970999,
+      "sha256": "3c8dd82b8d9eedaf82b656d76be52bae2ca1715c85165bb04a11021cc6bb7adb"
+    },
+    {
+      "file": "heart-polaroid-avatar.png",
+      "width": 1600,
+      "height": 1600,
+      "bytes": 1622921,
+      "sha256": "4428263ce41a797f993349625de02b636bd2594527de71c483f340aae5fda78f"
+    },
+    {
+      "file": "heart-polaroid-poster.png",
+      "width": 2400,
+      "height": 3000,
+      "bytes": 3253197,
+      "sha256": "d6350211adee01829b23b0c37bbde08bc77fa7b7b87bc5ff57c2cdcdeaa2e9c0"
+    }
+  ]
+}

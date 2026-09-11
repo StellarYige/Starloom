@@ -1,62 +1,47 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { PhotoAsset, ProjectState } from '../core/types'
-import { createProject } from '../core/project'
+import { replacePhoto } from '../core/project'
 import { historyReducer, initialHistory } from '../core/history'
-import { decodePhoto, importPhoto, loadSample } from '../core/photos'
-import { readDraft, writeDraft } from '../core/storage'
+import type { HistoryAction } from '../core/history'
+import { decodePhoto, importPhoto } from '../core/photos'
+import { saveWorkContent } from '../core/storage'
+import type { WorkRecord } from '../core/storage'
+import { refreshThumbnail } from '../core/thumbnail'
 
-export function useEditor() {
-  const [history, setHistory] = useState(() => initialHistory(createProject()))
-  const assets = useRef(new Map<string, PhotoAsset>())
-  const [ready, setReady] = useState(false)
-  const [storageAllowed, setStorageAllowed] = useState(false)
-  const [saveStatus, setSaveStatus] = useState('正在读取草稿')
+/** One mount is one work session. IDs never come from mutable navigation state. */
+export function useEditor(work: WorkRecord, onSaved: () => void, temporary = false) {
+  const [history, setHistory] = useState(() => initialHistory(work.project))
+  const historyRef = useRef(history)
+  const assets = useRef(new Map<string, PhotoAsset>([[work.asset.id, work.asset]]))
+  const [saveStatus, setSaveStatus] = useState(
+    temporary ? '保存失败 · 临时制作仍可导出' : '作品已恢复',
+  )
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
   const [importing, setImporting] = useState(false)
+  const [transitioning, setTransitioning] = useState(false)
   const [resource, setResource] = useState<{ id: string; bitmap: ImageBitmap } | null>(null)
   const project = history.present
   const asset = assets.current.get(project.photoId)
-  const latest = useRef({ project, asset, ready, storageAllowed })
-  latest.current = { project, asset, ready, storageAllowed }
-  const queue = useRef<Promise<void>>(Promise.resolve())
+  const queue = useRef<Promise<unknown>>(Promise.resolve())
   const saveSequence = useRef(0)
   const uploadSequence = useRef(0)
-
+  const alive = useRef(true)
+  const savedCallback = useRef(onSaved)
+  savedCallback.current = onSaved
   useEffect(() => {
-    let cancelled = false
-    void (async () => {
-      let storageOk = true
-      try {
-        let draft = null
-        try {
-          draft = await readDraft()
-        } catch (e) {
-          storageOk = false
-          if (!cancelled) {
-            setSaveStatus('草稿暂不可用')
-            setNotice(e instanceof Error ? e.message : '本地存储暂不可用，仍可制作和导出。')
-          }
-        }
-        const initialAsset = draft?.asset ?? (await loadSample())
-        if (cancelled) return
-        assets.current.set(initialAsset.id, initialAsset)
-        if (draft) {
-          setHistory(initialHistory(draft.project))
-          setNotice('上次的心意已回来，接着创作吧。')
-        }
-        setStorageAllowed(storageOk)
-        setReady(true)
-        if (storageOk) setSaveStatus(draft ? '草稿已恢复' : '已准备好')
-      } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : '创作空间未能加载，请刷新重试。')
-      }
-    })()
+    alive.current = true
     return () => {
-      cancelled = true
+      alive.current = false
+      ++uploadSequence.current
     }
   }, [])
 
+  const dispatch = useCallback((action: HistoryAction<ProjectState>) => {
+    const next = historyReducer(historyRef.current, action)
+    historyRef.current = next
+    setHistory(next)
+  }, [])
   useEffect(() => {
     if (!asset) return
     let cancelled = false
@@ -77,66 +62,73 @@ export function useEditor() {
     }
   }, [asset])
 
-  const saveNow = useCallback(() => {
-    const snapshot = latest.current
-    if (!snapshot.ready || !snapshot.storageAllowed || !snapshot.asset) return
+  const saveNow = useCallback((): Promise<boolean> => {
+    const snapshot = structuredClone(historyRef.current.present)
+    const photo = assets.current.get(snapshot.photoId)
+    if (temporary || !photo) return Promise.resolve(false)
     const sequence = ++saveSequence.current
-    setSaveStatus('正在保存…')
-    queue.current = queue.current
+    if (alive.current) setSaveStatus('正在保存…')
+    const task = queue.current
       .catch(() => undefined)
-      .then(() => writeDraft(snapshot.project, snapshot.asset!))
-      .then(() => {
-        if (sequence === saveSequence.current) setSaveStatus('已保存到本机')
+      .then(() => saveWorkContent(work.id, snapshot, photo))
+    queue.current = task
+    return task
+      .then((saved) => {
+        if (alive.current && sequence === saveSequence.current) setSaveStatus('已保存到本机')
+        savedCallback.current()
+        void refreshThumbnail(saved)
+          .then((changed) => {
+            if (changed) savedCallback.current()
+          })
+          .catch(() => undefined)
+        return true
       })
       .catch(() => {
-        if (sequence === saveSequence.current) setSaveStatus('保存失败 · 仍可导出')
+        if (alive.current && sequence === saveSequence.current) setSaveStatus('保存失败 · 仍可导出')
+        return false
       })
-  }, [])
+  }, [work.id, temporary])
 
   useEffect(() => {
-    if (!ready || !storageAllowed) return
+    if (temporary || transitioning) return
     setSaveStatus('等待保存…')
-    const timer = window.setTimeout(saveNow, 500)
+    const timer = window.setTimeout(() => {
+      void saveNow()
+    }, 500)
     return () => window.clearTimeout(timer)
-  }, [project, asset, ready, storageAllowed, saveNow])
-
+  }, [project, asset, temporary, transitioning, saveNow])
   useEffect(() => {
     const flush = () => {
-      if (document.visibilityState === 'hidden') saveNow()
+      if (document.visibilityState === 'hidden') void saveNow()
+    }
+    const pagehide = () => {
+      void saveNow()
     }
     document.addEventListener('visibilitychange', flush)
-    window.addEventListener('pagehide', saveNow)
+    window.addEventListener('pagehide', pagehide)
     return () => {
       document.removeEventListener('visibilitychange', flush)
-      window.removeEventListener('pagehide', saveNow)
+      window.removeEventListener('pagehide', pagehide)
     }
   }, [saveNow])
-
   useEffect(() => {
     const retained = new Set(
       [...history.past, history.present, ...history.future].map((p) => p.photoId),
     )
     for (const id of assets.current.keys()) if (!retained.has(id)) assets.current.delete(id)
   }, [history])
-
-  const change = useCallback((update: (previous: ProjectState) => ProjectState, group?: string) => {
-    setHistory((previous) =>
-      historyReducer(previous, { type: 'change', value: update(previous.present), group }),
-    )
-  }, [])
+  const change = useCallback(
+    (update: (previous: ProjectState) => ProjectState, group?: string) => {
+      dispatch({ type: 'change', value: update(historyRef.current.present), group })
+    },
+    [dispatch],
+  )
   const seal = useCallback(() => {
-    setHistory((previous) => historyReducer(previous, { type: 'seal' }))
-    saveNow()
-  }, [saveNow])
-  const undo = useCallback(
-    () => setHistory((previous) => historyReducer(previous, { type: 'undo' })),
-    [],
-  )
-  const redo = useCallback(
-    () => setHistory((previous) => historyReducer(previous, { type: 'redo' })),
-    [],
-  )
-
+    dispatch({ type: 'seal' })
+    void saveNow()
+  }, [dispatch, saveNow])
+  const undo = useCallback(() => dispatch({ type: 'undo' }), [dispatch])
+  const redo = useCallback(() => dispatch({ type: 'redo' }), [dispatch])
   const upload = useCallback(
     async (file: File) => {
       const sequence = ++uploadSequence.current
@@ -144,50 +136,43 @@ export function useEditor() {
       setError('')
       try {
         const next = await importPhoto(file)
-        if (sequence !== uploadSequence.current) return
+        if (!alive.current || sequence !== uploadSequence.current) return
         assets.current.set(next.id, next)
-        change((previous) => ({
-          ...previous,
-          photoId: next.id,
-          crops: { avatar: { x: 0.5, y: 0.5, zoom: 1 }, poster: { x: 0.5, y: 0.5, zoom: 1 } },
-        }))
-        if (Math.max(next.originalWidth, next.originalHeight) > 4096)
-          setNotice('已在本机生成 4096px 工作副本，原文件保持不变。')
-        else setNotice('照片已放入，两份作品可以分别调整裁切。')
+        change((previous) => replacePhoto(previous, next.id))
+        setNotice(
+          Math.max(next.originalWidth, next.originalHeight) > 4096
+            ? '已在本机生成 4096px 工作副本，原文件保持不变。'
+            : '照片已放入，各主题的裁切已重新居中，可分别调整。',
+        )
       } catch (e) {
-        if (sequence === uploadSequence.current)
+        if (alive.current && sequence === uploadSequence.current)
           setError(e instanceof Error ? e.message : '图片读取失败，请重试。')
       } finally {
-        if (sequence === uploadSequence.current) setImporting(false)
+        if (alive.current && sequence === uploadSequence.current) setImporting(false)
       }
     },
     [change],
   )
-
-  const reset = useCallback(async () => {
+  const prepareLeave = useCallback(async () => {
     ++uploadSequence.current
-    setImporting(true)
-    try {
-      const sample = await loadSample()
-      assets.current.set(sample.id, sample)
-      setHistory(initialHistory(createProject()))
-      setStorageAllowed(true)
-      setReady(true)
-      setError('')
-      setNotice('新的生日来信，等你写下。')
-    } catch (e) {
-      setError(e instanceof Error ? e.message : '重新开始失败，请重试。')
-    } finally {
-      setImporting(false)
+    setImporting(false)
+    setTransitioning(true)
+    dispatch({ type: 'seal' })
+    const saved = await saveNow()
+    if (alive.current) {
+      setTransitioning(false)
+      if (!saved)
+        setError('当前修改尚未保存，已为你留在这份作品。可以继续编辑、重试保存或先导出图片。')
     }
-  }, [])
-
+    return saved
+  }, [dispatch, saveNow])
   return {
     project,
     asset,
     bitmap: resource?.id === project.photoId ? resource.bitmap : null,
-    ready,
+    ready: true,
     importing,
+    transitioning,
     saveStatus,
     notice,
     setNotice,
@@ -200,8 +185,8 @@ export function useEditor() {
     canUndo: history.past.length > 0,
     canRedo: history.future.length > 0,
     upload,
-    reset,
     saveNow,
-    storageAllowed,
+    prepareLeave,
+    storageAllowed: !temporary,
   }
 }

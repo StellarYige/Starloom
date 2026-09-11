@@ -121,7 +121,12 @@ describe('undo and redo transactions', () => {
     const next = {
       ...first,
       photoId: 'replacement',
-      crops: { avatar: { x: 0.2, y: 0.6, zoom: 2 }, poster: { x: 0.6, y: 0.5, zoom: 3 } },
+      cropsByTemplate: {
+        'birthday-letter': {
+          avatar: { x: 0.2, y: 0.6, zoom: 2 },
+          poster: { x: 0.6, y: 0.5, zoom: 3 },
+        },
+      },
     }
     const history = historyReducer(
       historyReducer(initialHistory(first), { type: 'change', value: next }),

@@ -84,15 +84,17 @@ async function getLocalDraft(page: Page) {
   return page.evaluate(
     () =>
       new Promise<any>((resolve, reject) => {
-        const request = indexedDB.open('starloom-local', 1)
+        const request = indexedDB.open('starloom-local', 2)
         request.onsuccess = () => {
           const db = request.result
-          const read = db.transaction('drafts').objectStore('drafts').get('current')
-          read.onsuccess = () => {
-            db.close()
-            resolve(read.result)
+          const tx = db.transaction(['meta', 'works'])
+          const active = tx.objectStore('meta').get('activeWorkId')
+          active.onsuccess = () => {
+            const read = tx.objectStore('works').get(active.result)
+            read.onsuccess = () => resolve(read.result)
+            read.onerror = () => reject(read.error)
           }
-          read.onerror = () => reject(read.error)
+          tx.oncomplete = () => db.close()
         }
         request.onerror = () => reject(request.error)
       }),
@@ -101,6 +103,7 @@ async function getLocalDraft(page: Page) {
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/')
+  await page.getByRole('button', { name: '新建物料', exact: true }).click()
   await expect(page.getByRole('button', { name: '选好了，放入照片' })).toBeEnabled()
   await page.waitForFunction(() => document.querySelectorAll('.artwork-loading').length === 0)
 })
@@ -428,27 +431,29 @@ test('storage failure leaves editing and export usable', async ({ page }) => {
   await expect(page.getByRole('button', { name: '导出这份心意' })).toBeEnabled()
 })
 
-test('corrupt draft is reported and not overwritten by the sample project', async ({ page }) => {
+test('corrupt work is reported and not overwritten by the sample project', async ({ page }) => {
   await saved(page)
+  const original = await getLocalDraft(page)
   await page.evaluate(
-    () =>
+    (work) =>
       new Promise<void>((resolve) => {
-        const request = indexedDB.open('starloom-local', 1)
+        const request = indexedDB.open('starloom-local', 2)
         request.onsuccess = () => {
           const db = request.result
-          const tx = db.transaction('drafts', 'readwrite')
-          tx.objectStore('drafts').put({ schemaVersion: 999, marker: 'keep-original' }, 'current')
+          const tx = db.transaction('works', 'readwrite')
+          tx.objectStore('works').put({ ...work, schemaVersion: 999, marker: 'keep-original' })
           tx.oncomplete = () => {
             db.close()
             resolve()
           }
         }
       }),
+    original,
   )
   await page.reload()
-  await expect(page.locator('.workspace-status')).toContainText('草稿暂不可用')
-  await expect(page.getByRole('button', { name: '选好了，放入照片' })).toBeEnabled()
-  expect(await getLocalDraft(page)).toEqual({ schemaVersion: 999, marker: 'keep-original' })
+  await expect(page.getByRole('alert')).toContainText('暂不可读取')
+  await expect(page.getByRole('button', { name: '新建物料', exact: true })).toBeEnabled()
+  expect((await getLocalDraft(page)).marker).toBe('keep-original')
 })
 
 test('no horizontal overflow at 360/390px; main controls and export remain reachable', async ({

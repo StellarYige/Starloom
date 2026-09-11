@@ -36,6 +36,8 @@ Unsplash 标准许可允许免费使用、复制、修改和分发照片，包�
 | --- | --- | --- |
 | 界面图标、品牌 Sparkle 图形、`favicon.svg` | Lucide：https://lucide.dev；npm `lucide-react@1.44.0`。favicon 由库内 Sparkle 图标直接渲染，仅调整大小、颜色与线宽 | ISC，完整许可见 `Lucide-LICENSE.txt` |
 | 作品中的四角星芒、边框、细线、色块 | Starloom contributors 原创 Canvas 几何绘制，代码在 `src/core/render.ts`，布局在主题配置中 | MIT，与项目 `LICENSE` 相同 |
+| 心动拍立得的错位纸张、相纸边框、日期标签；此刻主场的舞台色块与排版 | Starloom contributors 原创，使用现有矩形、线条、星芒与文字图层，未增加外部贴纸、照片或字体 | MIT，与项目 `LICENSE` 相同 |
+| `docs/theme-comparison/` 的六张成品与对照页 | 使用上述 Aiony Haust 示例照片和现有字体，通过 Starloom 实际界面导出；示例姓名、生日、祝福为虚构 | 原创布局和文案采用 MIT；照片和字体仍保留各自许可，不改授 MIT |
 | 界面底纹与卡片布局 | Starloom contributors 原创 CSS | MIT |
 | 品牌文案与示例祝福 | Starloom contributors 原创文本 | MIT |
 

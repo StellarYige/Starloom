@@ -6,11 +6,12 @@ import '@fontsource/noto-sans-sc/600.css'
 import '@fontsource/cormorant-garamond/latin-500.css'
 import '@fontsource/cormorant-garamond/latin-500-italic.css'
 import '@fontsource/cormorant-garamond/latin-600.css'
-import App from './App'
+import Workspace from './Workspace'
 import './styles.css'
+import './workspace.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <App />
+    <Workspace />
   </React.StrictMode>,
 )

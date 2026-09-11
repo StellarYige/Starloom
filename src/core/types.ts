@@ -1,4 +1,5 @@
 export type Format = 'avatar' | 'poster'
+export type ColorMode = 'light' | 'dark'
 export type ColorToken = 'paper' | 'ink' | 'muted' | 'accent' | 'soft' | 'white' | 'onAccent'
 export type Decoration = 'sparkles' | 'lines'
 export interface Rect {
@@ -13,7 +14,7 @@ export interface Crop {
   zoom: number
 }
 export interface ProjectState {
-  version: 1
+  version: 2
   templateId: string
   photoId: string
   name: string
@@ -22,6 +23,10 @@ export interface ProjectState {
   wish: string
   color: string
   decorations: Record<Decoration, boolean>
+  cropsByTemplate: Record<string, Record<Format, Crop>>
+}
+export type LegacyProjectState = Omit<ProjectState, 'version' | 'cropsByTemplate'> & {
+  version: 1
   crops: Record<Format, Crop>
 }
 export interface PhotoAsset {
@@ -87,6 +92,7 @@ export interface TemplateDefinition {
   name: string
   subtitle: string
   tags: string[]
+  colorMode?: ColorMode
   palettes: { name: string; color: string }[]
   layouts: Record<Format, Layout>
 }

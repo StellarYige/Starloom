@@ -11,6 +11,8 @@ import {
   Flower2,
   Heart,
   ImagePlus,
+  FolderHeart,
+  Plus,
   Info,
   LoaderCircle,
   LockKeyhole,
@@ -31,6 +33,8 @@ import { ThemeSelector } from './components/ThemeSelector'
 import { useEditor } from './hooks/useEditor'
 import { getTemplate } from './templates'
 import { birthdayText, countCharacters, daysInMonth, validateContent } from './core/project'
+import { projectCrop, switchTemplate, updateCrop } from './core/project'
+import type { WorkRecord } from './core/storage'
 import { normalizeCrop } from './core/crop'
 import { photoFrame } from './core/render'
 import type { RenderResult } from './core/render'
@@ -45,8 +49,20 @@ const steps = [
   { name: '导出', title: '准备好，把心意送出', description: '再看一眼，然后保存这份喜欢。' },
 ]
 
-export default function App() {
-  const editor = useEditor()
+export default function App({
+  work,
+  onLibrary,
+  onNew,
+  onSaved,
+  temporary = false,
+}: {
+  work: WorkRecord
+  onLibrary: () => void
+  onNew: () => Promise<void>
+  onSaved: () => void
+  temporary?: boolean
+}) {
+  const editor = useEditor(work, onSaved, temporary)
   const { project, asset, bitmap } = editor
   const template = getTemplate(project.templateId)
   const [step, setStep] = useState(0)
@@ -54,7 +70,7 @@ export default function App() {
   const [safeArea, setSafeArea] = useState(false)
   const [dragOver, setDragOver] = useState(false)
   const [hex, setHex] = useState(project.color)
-  const [modal, setModal] = useState<'help' | 'about' | 'reset' | null>(null)
+  const [modal, setModal] = useState<'help' | 'about' | null>(null)
   const [exportSnapshot, setExportSnapshot] = useState<{
     project: ProjectState
     asset: PhotoAsset
@@ -80,7 +96,7 @@ export default function App() {
     !!results.avatar &&
     !!results.poster &&
     !renderError
-  const activeCrop = project.crops[format]
+  const activeCrop = projectCrop(project, format)
   const handleRender = useCallback(
     (target: Format, result: RenderResult | null, error?: string) => {
       setResults((previous) =>
@@ -141,16 +157,15 @@ export default function App() {
   const updateZoom = (zoom: number) => {
     if (!bitmap) return
     editor.change(
-      (previous) => ({
-        ...previous,
-        crops: {
-          ...previous.crops,
-          [format]: normalizeCrop(bitmap.width, bitmap.height, photoFrame(previous, format), {
-            ...previous.crops[format],
+      (previous) =>
+        updateCrop(
+          previous,
+          format,
+          normalizeCrop(bitmap.width, bitmap.height, photoFrame(previous, format), {
+            ...projectCrop(previous, format),
             zoom,
           }),
-        },
-      }),
+        ),
       `zoom-${format}`,
     )
   }
@@ -206,10 +221,7 @@ export default function App() {
         <button
           className="text-button"
           onClick={() =>
-            editor.change((previous) => ({
-              ...previous,
-              crops: { ...previous.crops, [format]: { x: 0.5, y: 0.5, zoom: 1 } },
-            }))
+            editor.change((previous) => updateCrop(previous, format, { x: 0.5, y: 0.5, zoom: 1 }))
           }
         >
           <RotateCcw size={13} />
@@ -239,6 +251,16 @@ export default function App() {
           </a>
           <span className="header-tagline">把喜欢，做成作品</span>
           <div className="header-actions">
+            <button
+              className="text-button library-link"
+              disabled={editor.transitioning}
+              onClick={async () => {
+                if (await editor.prepareLeave()) onLibrary()
+              }}
+            >
+              <FolderHeart size={17} />
+              <span>我的物料</span>
+            </button>
             <span className="occasion-badge">
               <span />
               生日应援
@@ -261,7 +283,12 @@ export default function App() {
           </div>
         </div>
       </header>
-      <main className="main-content">
+      <main className="main-content" inert={editor.transitioning}>
+        <div className="current-work-label">
+          <span>正在编辑</span>
+          <strong>{work.title}</strong>
+          <span>仅保存在当前浏览器</span>
+        </div>
         <section className="intro">
           <div>
             <p className="eyebrow">
@@ -365,7 +392,7 @@ export default function App() {
                   onRender={handleRender}
                   onCrop={(crop) =>
                     editor.change(
-                      (previous) => ({ ...previous, crops: { ...previous.crops, [format]: crop } }),
+                      (previous) => updateCrop(previous, format, crop),
                       `drag-${format}`,
                     )
                   }
@@ -457,7 +484,9 @@ export default function App() {
                 <ThemeSelector
                   project={project}
                   bitmap={bitmap}
-                  onSelect={(id) => editor.change((previous) => ({ ...previous, templateId: id }))}
+                  onSelect={(id) => {
+                    if (asset) editor.change((previous) => switchTemplate(previous, id, asset))
+                  }}
                 />
               )}
               {step === 1 && (
@@ -906,9 +935,32 @@ export default function App() {
             )}
             {editor.saveStatus}
           </span>
-          <button className="text-button" onClick={() => setModal('reset')}>
-            <RotateCcw size={13} />
-            重新开始
+          {editor.saveStatus.includes('失败') && editor.storageAllowed && (
+            <button
+              className="text-button"
+              onClick={async () => {
+                if (await editor.saveNow()) editor.setError('')
+              }}
+            >
+              重试保存
+            </button>
+          )}
+          <button
+            className="text-button"
+            onClick={async () => {
+              if (await editor.prepareLeave()) {
+                try {
+                  await onNew()
+                } catch (error) {
+                  editor.setError(
+                    error instanceof Error ? error.message : '新建失败，原作品已保留。',
+                  )
+                }
+              }
+            }}
+          >
+            <Plus size={13} />
+            新建物料
           </button>
         </div>
       </main>
@@ -946,7 +998,7 @@ export default function App() {
                   <p>
                     {
                       [
-                        '选中「生日来信」，一次制作头像和贺图。',
+                        '选择「生日来信」「心动拍立得」或「此刻主场」，一次制作头像和贺图。',
                         '上传自己的照片，支持 JPG、PNG 和 WebP。',
                         '填写名字、生日和祝福。完整祝福只出现在贺图中。',
                         '选择灵感色，或填写自己的应援色色值。',
@@ -1016,31 +1068,6 @@ export default function App() {
                 <ArrowRight size={13} />
               </a>
             </section>
-          </div>
-        </Modal>
-      )}
-      {modal === 'reset' && (
-        <Modal title="开始一封新的生日来信？" onClose={() => setModal(null)}>
-          <p className="modal-intro">
-            当前照片、内容、裁切和撤销记录会被清空，本机草稿将替换为新作品。想保留这份心意，可以先导出图片。
-          </p>
-          <div className="confirm-actions">
-            <button className="secondary-button" onClick={() => setModal(null)}>
-              继续这份创作
-            </button>
-            <button
-              className="primary-button"
-              onClick={() => {
-                setModal(null)
-                setStep(0)
-                setFormat('poster')
-                setSafeArea(false)
-                void editor.reset()
-              }}
-            >
-              重新开始
-              <ArrowRight size={15} />
-            </button>
           </div>
         </Modal>
       )}
