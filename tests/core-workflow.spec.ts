@@ -169,40 +169,55 @@ test.describe('@core', () => {
     await page.getByLabel('短句', { exact: true }).fill('把喜欢慢慢收藏。\nEvery little moment.')
     await page.getByRole('button', { name: '立即保存', exact: true }).click()
     await saved(page)
+    // Seed an old record only after all writes for this revision have settled.
+    // A fixture must not race the app's asynchronous thumbnail transaction.
+    await expect
+      .poll(async () => {
+        const work = await current(page)
+        return work.thumbnail && work.thumbnailRevision === work.revision
+      })
+      .toBe(true)
     const before = await current(page)
     expect(before.asset.blob).not.toBe(before.secondAsset.blob)
     expect(before.project.card.cropsByLayout['photo-strip']).toEqual(strip)
     // 0.3 stored uploaded File objects directly. Exercise those existing records,
     // including subsequent saves that can replace WebKit's backing disk files.
-    await page.evaluate(
-      (id) =>
-        new Promise<void>((resolve, reject) => {
-          const request = indexedDB.open('starloom-local')
-          request.onsuccess = () => {
-            const db = request.result
-            const tx = db.transaction('works', 'readwrite')
-            const store = tx.objectStore('works')
-            const read = store.get(id)
-            read.onsuccess = () => {
-              const work = read.result
-              for (const asset of [work.asset, work.secondAsset]) {
-                asset.blob = new File([asset.blob], asset.name, { type: asset.blob.type })
-              }
-              store.put(work)
-            }
-            tx.oncomplete = () => {
-              db.close()
-              resolve()
-            }
-            tx.onabort = () => {
-              db.close()
-              reject(tx.error)
-            }
-          }
-          request.onerror = () => reject(request.error)
-        }),
-      before.id,
-    )
+    await page.evaluate(async (id) => {
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        const request = indexedDB.open('starloom-local')
+        request.onsuccess = () => resolve(request.result)
+        request.onerror = () => reject(request.error)
+      })
+      try {
+        const work = await new Promise<any>((resolve, reject) => {
+          const tx = db.transaction('works', 'readonly')
+          const read = tx.objectStore('works').get(id)
+          tx.oncomplete = () => resolve(read.result)
+          tx.onabort = () => reject(tx.error)
+        })
+        // Model original uploaded Files with independent bytes. Wrapping an
+        // IDB-backed Blob directly can keep a reference to the file replaced
+        // by the next put, producing an already-corrupt synthetic fixture.
+        await Promise.all(
+          [work.asset, work.secondAsset].map(async (asset) => {
+            asset.blob = new File([await asset.blob.arrayBuffer()], asset.name, {
+              type: asset.blob.type,
+            })
+          }),
+        )
+        await new Promise<void>((resolve, reject) => {
+          const tx = db.transaction('works', 'readwrite')
+          tx.objectStore('works').put(work)
+          tx.oncomplete = () => resolve()
+          tx.onabort = () => reject(tx.error)
+        })
+      } finally {
+        db.close()
+      }
+    }, before.id)
+    const seeded = await current(page)
+    expect(seeded.asset).toEqual(before.asset)
+    expect(seeded.secondAsset).toEqual(before.secondAsset)
     await page.reload()
     await ready(page)
     await saved(page)
