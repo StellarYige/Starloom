@@ -1,5 +1,6 @@
 import type { Crop, LegacyProjectState, PhotoAsset, ProjectState } from './types'
-import { getTemplate } from '../templates'
+import { artworkTemplate, getTemplate } from '../templates'
+import { isPhotoCard } from './photo-card'
 import { birthdayText, countCharacters, createId, graphemes, migrateProject } from './project'
 
 export interface Draft {
@@ -9,7 +10,7 @@ export interface Draft {
   savedAt: number
 }
 export interface WorkRecord {
-  schemaVersion: 2
+  schemaVersion: 2 | 3
   id: string
   title: string
   createdAt: number
@@ -17,6 +18,7 @@ export interface WorkRecord {
   revision: number
   project: ProjectState
   asset: PhotoAsset
+  secondAsset?: PhotoAsset
   thumbnail: Blob | null
   thumbnailRevision: number
 }
@@ -77,7 +79,11 @@ async function transact<T>(
     return await new Promise<T>((resolve, reject) => {
       let value: T
       let failure: unknown
-      const tx = db.transaction(names, mode)
+      // Resolve only after commit; strict durability also requests a disk flush before completion.
+      const tx =
+        mode === 'readwrite'
+          ? db.transaction(names, mode, { durability: 'strict' })
+          : db.transaction(names, mode)
       tx.oncomplete = () => resolve(value)
       tx.onabort = () => reject(failure ?? tx.error ?? new Error('保存被浏览器中止。'))
       tx.onerror = () => {
@@ -113,6 +119,21 @@ function validCrop(crop: Crop | undefined) {
     crop.y <= 1 &&
     crop.zoom >= 1 &&
     crop.zoom <= 4
+  )
+}
+function validPhoto(asset: PhotoAsset | undefined, id: string | undefined) {
+  return (
+    !!asset &&
+    typeof id === 'string' &&
+    !!id &&
+    asset.id === id &&
+    asset.blob instanceof Blob &&
+    asset.blob.size > 0 &&
+    typeof asset.name === 'string' &&
+    typeof asset.sample === 'boolean' &&
+    [asset.width, asset.height, asset.originalWidth, asset.originalHeight].every(
+      (n) => Number.isFinite(n) && n > 0,
+    )
   )
 }
 function validContent(
@@ -165,9 +186,29 @@ export function isValidWork(value: unknown): value is WorkRecord {
   if (!value || typeof value !== 'object') return false
   const w = value as WorkRecord
   const crops = w.project?.cropsByTemplate
+  const project = w.project
+  const card = project && isPhotoCard(project) ? project.card : null
+  const compatible = card
+    ? w.schemaVersion === 3 &&
+      validPhoto(w.secondAsset, card.secondPhotoId) &&
+      typeof card.date === 'string' &&
+      card.date.length <= 20 &&
+      !!card.cropsByLayout &&
+      !!card.cropsByLayout[project.templateId] &&
+      Object.values(card.cropsByLayout).every(
+        (pair) => !!pair && validCrop(pair.first) && validCrop(pair.second),
+      )
+    : w.schemaVersion === 2 &&
+      project?.version === 2 &&
+      project.card === undefined &&
+      w.secondAsset === undefined &&
+      !!crops &&
+      !!crops[project.templateId] &&
+      Object.values(crops).every(
+        (pair) => !!pair && validCrop(pair.avatar) && validCrop(pair.poster),
+      )
   return (
-    w.schemaVersion === 2 &&
-    w.project?.version === 2 &&
+    compatible &&
     validContent(w.project, w.asset) &&
     typeof w.id === 'string' &&
     !!w.id &&
@@ -176,10 +217,7 @@ export function isValidWork(value: unknown): value is WorkRecord {
     Number.isFinite(w.updatedAt) &&
     Number.isFinite(new Date(w.updatedAt).getTime()) &&
     Number.isInteger(w.revision) &&
-    w.revision > 0 &&
-    !!crops &&
-    !!crops[w.project.templateId] &&
-    Object.values(crops).every((pair) => !!pair && validCrop(pair.avatar) && validCrop(pair.poster))
+    w.revision > 0
   )
 }
 function record(
@@ -188,9 +226,10 @@ function record(
   title: string,
   id = createId(),
   time = Date.now(),
+  secondAsset?: PhotoAsset,
 ): WorkRecord {
   const work: WorkRecord = {
-    schemaVersion: 2,
+    schemaVersion: isPhotoCard(project) ? 3 : 2,
     id,
     title,
     createdAt: time,
@@ -198,6 +237,7 @@ function record(
     revision: 1,
     project,
     asset,
+    ...(secondAsset ? { secondAsset } : {}),
     thumbnail: null,
     thumbnailRevision: 0,
   }
@@ -283,7 +323,7 @@ export async function getWork(id: string): Promise<WorkRecord> {
   })
   if (!value) throw new Error('这份作品已被删除，无法继续保存或打开。')
   if (!isValidWork(value)) throw new Error('这份作品暂不可读取，原数据仍保留。')
-  getTemplate(value.project.templateId)
+  artworkTemplate(value.project)
   return value
 }
 export function readActiveWorkId(): Promise<string | null> {
@@ -309,8 +349,16 @@ export async function createWork(
   project: ProjectState,
   asset: PhotoAsset,
   title = '新的生日应援',
+  secondAsset?: PhotoAsset,
 ): Promise<WorkRecord> {
-  const work = record(structuredClone(project), { ...asset }, validateTitle(title))
+  const work = record(
+    structuredClone(project),
+    { ...asset },
+    validateTitle(title),
+    undefined,
+    undefined,
+    secondAsset ? { ...secondAsset } : undefined,
+  )
   return transact(['works', 'meta'], 'readwrite', (tx, done) => {
     tx.objectStore('works').add(work)
     tx.objectStore('meta').put(work.id, 'activeWorkId')
@@ -336,12 +384,28 @@ function editWork(id: string, update: (work: WorkRecord) => WorkRecord): Promise
     }
   })
 }
-export function saveWorkContent(id: string, project: ProjectState, asset: PhotoAsset) {
-  return editWork(id, (work) =>
-    JSON.stringify(work.project) === JSON.stringify(project) && work.asset.id === asset.id
+export function saveWorkContent(
+  id: string,
+  project: ProjectState,
+  asset: PhotoAsset,
+  secondAsset?: PhotoAsset,
+) {
+  return editWork(id, (work) => {
+    if (isPhotoCard(project) && !secondAsset)
+      throw new Error('第二张照片缺失，未覆盖已保存的作品。')
+    return JSON.stringify(work.project) === JSON.stringify(project) &&
+      work.asset.id === asset.id &&
+      work.secondAsset?.id === secondAsset?.id
       ? work
-      : { ...work, project, asset, updatedAt: Date.now(), revision: work.revision + 1 },
-  )
+      : {
+          ...work,
+          project,
+          asset,
+          ...(secondAsset ? { secondAsset } : {}),
+          updatedAt: Date.now(),
+          revision: work.revision + 1,
+        }
+  })
 }
 export function renameWork(id: string, title: string) {
   const value = validateTitle(title)
@@ -352,10 +416,14 @@ export function renameWork(id: string, title: string) {
 export async function copyWork(id: string): Promise<WorkRecord> {
   const source = await getWork(id)
   const photoId = createId()
+  const secondPhotoId = createId()
+  const project = { ...structuredClone(source.project), photoId }
+  if (isPhotoCard(project)) project.card.secondPhotoId = secondPhotoId
   return createWork(
-    { ...structuredClone(source.project), photoId },
+    project,
     { ...source.asset, id: photoId },
     graphemes(source.title).slice(0, 56).join('') + '（副本）',
+    source.secondAsset ? { ...source.secondAsset, id: secondPhotoId } : undefined,
   )
 }
 export function deleteWork(id: string): Promise<void> {

@@ -1,8 +1,8 @@
 {
   "name": "starloom",
   "private": true,
-  "version": "0.2.0",
-  "description": "星迹 Starloom — 把喜欢，做成作品。完全在浏览器本地运行的生日应援制作工具。",
+  "version": "0.3.0",
+  "description": "星迹 Starloom — 把喜欢，做成作品。本地双照片电子小卡与生日应援制作工具。",
   "type": "module",
   "license": "MIT",
   "engines": {

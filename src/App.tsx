@@ -20,7 +20,6 @@ import {
   Move,
   Redo2,
   RotateCcw,
-  ShieldCheck,
   Sparkle,
   Undo2,
   Upload,
@@ -30,6 +29,7 @@ import { ArtworkCanvas } from './components/ArtworkCanvas'
 import { ExportModal } from './components/ExportModal'
 import { Modal } from './components/Modal'
 import { ThemeSelector } from './components/ThemeSelector'
+import { LocalSaveNotice } from './components/LocalSaveNotice'
 import { useEditor } from './hooks/useEditor'
 import { getTemplate } from './templates'
 import { birthdayText, countCharacters, daysInMonth, validateContent } from './core/project'
@@ -38,7 +38,7 @@ import type { WorkRecord } from './core/storage'
 import { normalizeCrop } from './core/crop'
 import { photoFrame } from './core/render'
 import type { RenderResult } from './core/render'
-import type { Format, PhotoAsset, ProjectState } from './core/types'
+import type { ArtworkFormat, Format, PhotoAsset, ProjectState } from './core/types'
 
 const steps = [
   { name: '选主题', title: '从喜欢的样子开始', description: '一套主题，两份心意。' },
@@ -98,7 +98,8 @@ export default function App({
     !renderError
   const activeCrop = projectCrop(project, format)
   const handleRender = useCallback(
-    (target: Format, result: RenderResult | null, error?: string) => {
+    (target: ArtworkFormat, result: RenderResult | null, error?: string) => {
+      if (target === 'card') return
       setResults((previous) =>
         JSON.stringify(previous[target]) === JSON.stringify(result)
           ? previous
@@ -921,30 +922,18 @@ export default function App({
             </div>
           </section>
         </div>
-        <div className="workspace-status">
-          <span
-            className={
-              editor.saveStatus.includes('失败') || !editor.storageAllowed ? 'save-warning' : ''
-            }
-            role="status"
-          >
-            {editor.saveStatus.includes('失败') ? (
-              <CircleAlert size={14} />
-            ) : (
-              <ShieldCheck size={14} />
-            )}
-            {editor.saveStatus}
-          </span>
-          {editor.saveStatus.includes('失败') && editor.storageAllowed && (
-            <button
-              className="text-button"
-              onClick={async () => {
-                if (await editor.saveNow()) editor.setError('')
-              }}
-            >
-              重试保存
-            </button>
-          )}
+        <LocalSaveNotice
+          status={editor.saveStatus}
+          savedAt={editor.savedAt}
+          detail={editor.saveDetail}
+          temporary={temporary}
+          retry={() => {
+            void editor.saveNow().then((saved) => {
+              if (saved) editor.setError('')
+            })
+          }}
+        />
+        <div className="new-work-action">
           <button
             className="text-button"
             onClick={async () => {

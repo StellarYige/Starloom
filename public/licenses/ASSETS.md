@@ -40,6 +40,7 @@ Unsplash 标准许可允许免费使用、复制、修改和分发照片，包�
 | `docs/theme-comparison/` 的六张成品与对照页 | 使用上述 Aiony Haust 示例照片和现有字体，通过 Starloom 实际界面导出；示例姓名、生日、祝福为虚构 | 原创布局和文案采用 MIT；照片和字体仍保留各自许可，不改授 MIT |
 | 界面底纹与卡片布局 | Starloom contributors 原创 CSS | MIT |
 | 品牌文案与示例祝福 | Starloom contributors 原创文本 | MIT |
+| 0.3 双照片小卡的照片条、相纸拼贴、纸胶带与示例短句 | Starloom contributors 原创 Canvas 布局与文字；沿用现有授权人像和本地字体，未增加外部照片 | 原创部分 MIT；照片和字体保留各自许可 |
 
 未使用影视剧截图、偶像照片、游戏立绘、未经授权的饭制图片、商业贴纸或付费字体。用户主动导入的照片不包含在项目分发中，仍归其相应权利人所有。
 

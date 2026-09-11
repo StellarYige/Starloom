@@ -2410,19 +2410,19 @@ a {
   }
 }
 @media (max-width: 700px) {
-  .app-shell:not([data-step='0']) .intro {
+  .app-shell[data-step]:not([data-step='0']) .intro {
     display: none;
   }
-  .app-shell:not([data-step='0']) .main-content {
+  .app-shell[data-step]:not([data-step='0']) .main-content {
     padding-top: 16px;
   }
-  .app-shell:not([data-step='0']) .preview-panel {
+  .app-shell[data-step]:not([data-step='0']) .preview-panel {
     position: sticky;
     top: 8px;
     z-index: 8;
     box-shadow: 0 5px 14px #39452612;
   }
-  .app-shell:not([data-step='0']) .preview-stage {
+  .app-shell[data-step]:not([data-step='0']) .preview-stage {
     height: 240px;
   }
   .app-shell:not([data-step='0']) .primary-artwork.poster {
@@ -2443,7 +2443,7 @@ a {
     font-size: 11px;
     bottom: 8px;
   }
-  .app-shell:has(.editor-panel input[type='text']:focus, .editor-panel textarea:focus)
+  .app-shell[data-step]:has(.editor-panel input[type='text']:focus, .editor-panel textarea:focus)
     .preview-stage {
     height: 165px;
   }

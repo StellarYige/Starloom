@@ -1,5 +1,6 @@
-import { getTemplate } from '../templates'
-import type { Format, ProjectState, TextLayer } from './types'
+import { artworkLayout, artworkTemplate, getTemplate } from '../templates'
+import type { ArtworkFormat, PhotoSlot, ProjectState, TextLayer } from './types'
+import { cardCrop, isPhotoCard } from './photo-card'
 import { palette } from './color'
 import { cropGeometry } from './crop'
 import { birthdayText, graphemes, projectCrop } from './project'
@@ -14,14 +15,19 @@ export function textContent(layer: TextLayer, project: ProjectState) {
     ? layer.content.literal
     : layer.content === 'birthday'
       ? birthdayText(project)
-      : project[layer.content]
+      : layer.content === 'date'
+        ? (project.card?.date ?? '').replaceAll('-', '.')
+        : project[layer.content]
 }
 function fontSpec(layer: TextLayer, size = layer.size) {
   return `${layer.italic ? 'italic ' : ''}${layer.weight ?? (layer.font === 'serif' ? 500 : 400)} ${size}px ${fontFamily[layer.font]}`
 }
 const fontLoads = new Map<string, Promise<unknown>>()
 export async function prepareFonts(project: ProjectState) {
-  const layers = Object.values(getTemplate(project.templateId).layouts)
+  const layouts = isPhotoCard(project)
+    ? [artworkLayout(project, 'card')]
+    : Object.values(getTemplate(project.templateId).layouts)
+  const layers = layouts
     .flatMap((layout) => layout.layers)
     .filter((layer): layer is TextLayer => layer.type === 'text')
   await Promise.all(
@@ -42,9 +48,13 @@ export async function prepareFonts(project: ProjectState) {
     }),
   )
 }
-export function photoFrame(project: ProjectState, format: Format) {
-  const frame = getTemplate(project.templateId).layouts[format].layers.find(
-    (layer) => layer.type === 'photo',
+export function photoFrame(
+  project: ProjectState,
+  format: ArtworkFormat,
+  slot: PhotoSlot = 'first',
+) {
+  const frame = artworkLayout(project, format).layers.find(
+    (layer) => layer.type === 'photo' && (layer.slot ?? 'first') === slot,
   )
   if (!frame || frame.type !== 'photo') throw new Error('主题缺少照片区域。')
   return frame
@@ -59,16 +69,18 @@ export function renderArtwork(
   canvas: HTMLCanvasElement,
   project: ProjectState,
   bitmap: ImageBitmap,
-  format: Format,
+  format: ArtworkFormat,
   width: number,
+  secondBitmap?: ImageBitmap | null,
 ): RenderResult {
-  const layout = getTemplate(project.templateId).layouts[format]
+  const layout = artworkLayout(project, format)
+  if (isPhotoCard(project) && !secondBitmap) throw new Error('第二张照片尚未准备好，请重试或换图。')
   const height = Math.round((width * layout.height) / layout.width)
   if (canvas.width !== width) canvas.width = width
   if (canvas.height !== height) canvas.height = height
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('浏览器无法创建绘图区域，请刷新后重试。')
-  const colors = palette(project.color, getTemplate(project.templateId).colorMode)
+  const colors = palette(project.color, artworkTemplate(project).colorMode)
   ctx.setTransform(width / layout.width, 0, 0, width / layout.width, 0, 0)
   ctx.clearRect(0, 0, layout.width, layout.height)
   ctx.fillStyle = colors.paper
@@ -81,15 +93,21 @@ export function renderArtwork(
     if (layer.decoration && !project.decorations[layer.decoration]) continue
     ctx.save()
     if (layer.type === 'photo') {
+      const photo = layer.slot === 'second' ? secondBitmap! : bitmap
       ctx.beginPath()
       ctx.roundRect(layer.x, layer.y, layer.width, layer.height, layer.radius ?? 0)
       ctx.clip()
-      const crop = cropGeometry(bitmap.width, bitmap.height, layer, projectCrop(project, format))
+      const crop = cropGeometry(
+        photo.width,
+        photo.height,
+        layer,
+        format === 'card' ? cardCrop(project, layer.slot ?? 'first') : projectCrop(project, format),
+      )
       // Transparent uploads sit on the same paper as the rest of the composition.
       ctx.fillStyle = colors.paper
       ctx.fillRect(layer.x, layer.y, layer.width, layer.height)
       ctx.drawImage(
-        bitmap,
+        photo,
         crop.sourceX,
         crop.sourceY,
         crop.sourceWidth,
@@ -156,7 +174,7 @@ export function renderArtwork(
       )
       if (fit.overflow)
         issues.push(
-          `${layer.content === 'name' ? '姓名' : layer.content === 'wish' ? '祝福语' : '文字'}在${format === 'avatar' ? '头像' : '贺图'}中放不下，请缩短内容或减少换行。`,
+          `${layer.content === 'name' ? '姓名' : layer.content === 'wish' ? (format === 'card' ? '短句' : '祝福语') : '文字'}在${format === 'avatar' ? '头像' : format === 'card' ? '小卡' : '贺图'}中放不下，请缩短内容或减少换行。`,
         )
       ctx.font = fontSpec(layer, fit.size)
       ctx.fillStyle = colors[layer.color]
@@ -201,7 +219,12 @@ export const canvasBlob = (canvas: HTMLCanvasElement, type = 'image/png', qualit
       quality,
     ),
   )
-export async function exportArtwork(project: ProjectState, bitmap: ImageBitmap, format: Format) {
+export async function exportArtwork(
+  project: ProjectState,
+  bitmap: ImageBitmap,
+  format: ArtworkFormat,
+  secondBitmap?: ImageBitmap,
+) {
   await prepareFonts(project)
   const canvas = document.createElement('canvas')
   try {
@@ -210,7 +233,8 @@ export async function exportArtwork(project: ProjectState, bitmap: ImageBitmap, 
       project,
       bitmap,
       format,
-      getTemplate(project.templateId).layouts[format].exportWidth,
+      artworkLayout(project, format).exportWidth,
+      secondBitmap,
     )
     if (result.issues.length) throw new Error(result.issues.join('\n'))
     return await canvasBlob(canvas)

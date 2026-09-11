@@ -88,18 +88,29 @@ export const daysInMonth = (month: number) =>
   [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1] ?? 0
 export const birthdayText = (project: ProjectState) =>
   `${String(project.month).padStart(2, '0')}.${String(project.day).padStart(2, '0')}`
+export function validCardDate(date: string) {
+  if (!date) return true
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date.startsWith('0000')) return false
+  const parsed = new Date(`${date}T00:00:00Z`)
+  return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === date
+}
 export function validateContent(project: ProjectState): string[] {
   const issues: string[] = []
   if (!project.name.trim()) issues.push('写下一个名字，让这份心意有所归属。')
   if (countCharacters(project.name) > 40) issues.push('姓名最多 40 个字符，请稍作精简。')
-  if (countCharacters(project.wish) > 200) issues.push('祝福语最多 200 个字符，请稍作精简。')
+  const card = project.version === 3
+  if (countCharacters(project.wish) > (card ? 80 : 200))
+    issues.push(card ? '短句最多 80 个字符，请稍作精简。' : '祝福语最多 200 个字符，请稍作精简。')
   if (
-    !Number.isInteger(project.month) ||
-    !Number.isInteger(project.day) ||
-    project.day < 1 ||
-    project.day > daysInMonth(project.month)
+    !card &&
+    (!Number.isInteger(project.month) ||
+      !Number.isInteger(project.day) ||
+      project.day < 1 ||
+      project.day > daysInMonth(project.month))
   )
     issues.push('请选择有效的生日。')
+  if (card && !validCardDate(project.card?.date ?? ''))
+    issues.push('请填写有效日期，或选择不显示日期。')
   if (!/^#[\da-f]{6}$/i.test(project.color)) issues.push('应援色需要是完整的六位十六进制颜色。')
   return issues
 }

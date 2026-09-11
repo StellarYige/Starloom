@@ -1,33 +1,41 @@
 import { useEffect, useState } from 'react'
 import { Download, LoaderCircle, ExternalLink, Check } from 'lucide-react'
 import { Modal } from './Modal'
-import type { Format, PhotoAsset, ProjectState } from '../core/types'
+import type { ArtworkFormat, PhotoAsset, ProjectState } from '../core/types'
 import { decodePhoto } from '../core/photos'
 import { exportArtwork } from '../core/render'
-import { getTemplate } from '../templates'
+import { artworkLayout } from '../templates'
+import { isPhotoCard } from '../core/photo-card'
 import { validateContent } from '../core/project'
 
 export function ExportModal({
   snapshot,
   onClose,
 }: {
-  snapshot: { project: ProjectState; asset: PhotoAsset }
+  snapshot: { project: ProjectState; asset: PhotoAsset; secondAsset?: PhotoAsset }
   onClose: () => void
 }) {
-  const [files, setFiles] = useState<Partial<Record<Format, string>>>({})
+  const [files, setFiles] = useState<Partial<Record<ArtworkFormat, string>>>({})
   const [error, setError] = useState('')
+  const formats: ArtworkFormat[] = isPhotoCard(snapshot.project) ? ['card'] : ['avatar', 'poster']
+  const labels = { avatar: '头像', poster: '贺图', card: '小卡' }
+  const names = { avatar: '应援头像', poster: '生日贺图', card: '电子小卡' }
   useEffect(() => {
     let cancelled = false
     const urls: string[] = []
     void (async () => {
       let bitmap: ImageBitmap | undefined
+      let secondBitmap: ImageBitmap | undefined
       try {
         const issues = validateContent(snapshot.project)
         if (issues.length) throw new Error(issues.join('\n'))
         bitmap = await decodePhoto(snapshot.asset.blob)
-        for (const format of ['avatar', 'poster'] as const) {
+        if (snapshot.secondAsset) secondBitmap = await decodePhoto(snapshot.secondAsset.blob)
+        for (const format of (isPhotoCard(snapshot.project)
+          ? ['card']
+          : ['avatar', 'poster']) as ArtworkFormat[]) {
           if (cancelled) return
-          const blob = await exportArtwork(snapshot.project, bitmap, format)
+          const blob = await exportArtwork(snapshot.project, bitmap, format, secondBitmap)
           if (cancelled) return
           const url = URL.createObjectURL(blob)
           urls.push(url)
@@ -37,6 +45,7 @@ export function ExportModal({
         if (!cancelled) setError(e instanceof Error ? e.message : '导出失败，请重试。')
       } finally {
         bitmap?.close()
+        secondBitmap?.close()
       }
     })()
     return () => {
@@ -51,15 +60,19 @@ export function ExportModal({
       .slice(0, 50) || '生日来信'
   return (
     <Modal title="心意准备好了" onClose={onClose} className="export-modal">
-      <p className="modal-intro">两份配套的生日心意，送给特别的 TA。</p>
+      <p className="modal-intro">
+        {isPhotoCard(snapshot.project)
+          ? '两张照片，一份值得收藏的日常。'
+          : '两份配套的生日心意，送给特别的 TA。'}
+      </p>
       {error && (
         <p className="message error" role="alert">
           {error}
         </p>
       )}
-      <div className="export-grid">
-        {(['avatar', 'poster'] as const).map((format) => {
-          const layout = getTemplate(snapshot.project.templateId).layouts[format]
+      <div className={`export-grid ${isPhotoCard(snapshot.project) ? 'single-export' : ''}`}>
+        {formats.map((format) => {
+          const layout = artworkLayout(snapshot.project, format)
           return (
             <section className="export-card" key={format}>
               <div className="export-image">
@@ -68,18 +81,15 @@ export function ExportModal({
                     href={files[format]}
                     target="_blank"
                     rel="noopener noreferrer"
-                    aria-label={`查看${format === 'avatar' ? '头像' : '贺图'}原图`}
+                    aria-label={`查看${labels[format]}原图`}
                   >
-                    <img
-                      src={files[format]}
-                      alt={format === 'avatar' ? '已导出的应援头像' : '已导出的生日贺图'}
-                    />
+                    <img src={files[format]} alt={`已导出的${names[format]}`} />
                   </a>
                 ) : (
                   <LoaderCircle className="spin" size={28} />
                 )}
               </div>
-              <h3>{format === 'avatar' ? '应援头像' : '生日贺图'}</h3>
+              <h3>{names[format]}</h3>
               <p>
                 {layout.exportWidth} × {layout.exportHeight} · PNG
               </p>
@@ -88,10 +98,10 @@ export function ExportModal({
                   <a
                     className="primary-button"
                     href={files[format]}
-                    download={`星迹-${stem}-${format === 'avatar' ? '应援头像' : '生日贺图'}.png`}
+                    download={`星迹-${stem}-${names[format]}.png`}
                   >
                     <Download size={16} />
-                    下载{format === 'avatar' ? '头像' : '贺图'} PNG
+                    下载{labels[format]} PNG
                   </a>
                   <a
                     className="text-button view-original"

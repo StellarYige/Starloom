@@ -13,6 +13,9 @@ import {
   Trash2,
 } from 'lucide-react'
 import App from './App'
+import PhotoCardEditor from './PhotoCardEditor'
+import { createPhotoCard, isPhotoCard } from './core/photo-card'
+import { cardTemplates } from './templates/photo-cards'
 import { Modal } from './components/Modal'
 import { templates } from './templates'
 import { countCharacters, createId, createProject } from './core/project'
@@ -44,7 +47,10 @@ function WorkThumbnail({ work }: { work: WorkSummary }) {
     return () => URL.revokeObjectURL(next)
   }, [work.thumbnail])
   return url ? (
-    <img src={url} alt={`${work.title}的贺图缩略图`} />
+    <img
+      src={url}
+      alt={`${work.title}的${cardTemplates.some((item) => item.id === work.templateId) ? '小卡' : '贺图'}缩略图`}
+    />
   ) : (
     <span className="work-placeholder">
       <Image size={34} strokeWidth={1} />
@@ -164,11 +170,19 @@ export default function Workspace() {
       }),
     [operate, refresh, show],
   )
+  const newCard = () =>
+    operate(async () => {
+      const asset = await loadSample()
+      const work = await createWork(createPhotoCard(), asset, '新的电子小卡', asset)
+      show(work)
+      await refresh()
+    }).catch((error) => setError(message(error)))
   const open = (id: string) =>
     operate(async () => {
       const work = await getWork(id)
       const bitmap = await decodePhoto(work.asset.blob)
       bitmap.close()
+      if (work.secondAsset) (await decodePhoto(work.secondAsset.blob)).close()
       await activateWork(id)
       show(work)
     }).catch((error) => setError(message(error)))
@@ -199,19 +213,34 @@ export default function Workspace() {
   if (view === 'editor' && active)
     return (
       <div inert={busy}>
-        <App
-          key={`${active.id}:${session}`}
-          work={active}
-          temporary={temporary}
-          onSaved={() => {
-            void refresh()
-          }}
-          onNew={newWork}
-          onLibrary={() => {
-            setView('library')
-            void refresh()
-          }}
-        />
+        {isPhotoCard(active.project) ? (
+          <PhotoCardEditor
+            key={`${active.id}:${session}`}
+            work={active}
+            temporary={temporary}
+            onSaved={() => {
+              void refresh()
+            }}
+            onLibrary={() => {
+              setView('library')
+              void refresh()
+            }}
+          />
+        ) : (
+          <App
+            key={`${active.id}:${session}`}
+            work={active}
+            temporary={temporary}
+            onSaved={() => {
+              void refresh()
+            }}
+            onNew={newWork}
+            onLibrary={() => {
+              setView('library')
+              void refresh()
+            }}
+          />
+        )}
         {busy && (
           <div className="workspace-busy" role="status">
             <LoaderCircle className="spin" size={18} />
@@ -253,20 +282,32 @@ export default function Workspace() {
               我的物料<span>把每一份喜欢，慢慢收藏。</span>
             </h1>
           </div>
-          <button
-            className="primary-button"
-            disabled={busy}
-            onClick={() => {
-              void newWork().catch((error) => setError(message(error)))
-            }}
-          >
-            <Plus size={17} />
-            新建物料
-          </button>
+          <div className="library-create-actions">
+            <button
+              className="secondary-button"
+              disabled={busy}
+              onClick={() => {
+                void newCard()
+              }}
+            >
+              <Plus size={17} />
+              新建电子小卡
+            </button>
+            <button
+              className="primary-button"
+              disabled={busy}
+              onClick={() => {
+                void newWork().catch((error) => setError(message(error)))
+              }}
+            >
+              <Plus size={17} />
+              新建物料
+            </button>
+          </div>
         </section>
         <p className="library-privacy">
           <LockKeyhole size={15} />
-          作品仅保存在当前浏览器，不会上传或跨设备同步。清理网站数据可能丢失作品。
+          作品仅保存在当前浏览器资料与站点，不会上传或跨设备同步。无痕窗口结束、清理网站数据或存储回收可能丢失作品，请及时下载重要成品。
         </p>
         {(error || warning) && (
           <div className="library-message" role="alert">
@@ -325,11 +366,11 @@ export default function Workspace() {
             </div>
             <h2>第一份心意，从这里开始</h2>
             <p>
-              选一张喜欢的照片，做一套属于 TA 的生日物料。
+              收藏两帧日常，或为 TA 做一套生日物料。
               <br />
               每份作品都会独立保存，下次回来接着做。
             </p>
-            <span>三套主题 · 配套头像与贺图 · 免费高清导出</span>
+            <span>双照片小卡 · 配套头像与贺图 · 免费高清导出</span>
           </section>
         ) : (
           <div className="work-grid" aria-label="本地作品列表" inert={busy}>
@@ -356,8 +397,9 @@ export default function Workspace() {
                 <div className="work-card-copy">
                   <div>
                     <p>
-                      {templates.find((template) => template.id === work.templateId)?.name ??
-                        '主题暂不可用'}
+                      {[...templates, ...cardTemplates].find(
+                        (template) => template.id === work.templateId,
+                      )?.name ?? '主题暂不可用'}
                     </p>
                     <h2 title={work.title}>{work.title}</h2>
                     <time dateTime={new Date(work.updatedAt).toISOString()}>

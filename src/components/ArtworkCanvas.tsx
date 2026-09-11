@@ -1,27 +1,34 @@
 import { useEffect, useRef, useState } from 'react'
 import type { KeyboardEvent, PointerEvent } from 'react'
-import type { Crop, Format, ProjectState } from '../core/types'
+import type { ArtworkFormat, Crop, PhotoSlot, ProjectState } from '../core/types'
 import { dragCrop } from '../core/crop'
 import { projectCrop } from '../core/project'
-import { getTemplate } from '../templates'
+import { artworkLayout } from '../templates'
+import { cardCrop } from '../core/photo-card'
 import { photoFrame, prepareFonts, renderArtwork } from '../core/render'
 import type { RenderResult } from '../core/render'
 
 interface Props {
   project: ProjectState
   bitmap: ImageBitmap | null
-  format: Format
+  secondBitmap?: ImageBitmap | null
+  format: ArtworkFormat
+  activeSlot?: PhotoSlot
+  onSelectSlot?: (slot: PhotoSlot) => void
   editable?: boolean
   safeArea?: boolean
   thumbnail?: boolean
-  onCrop?: (crop: Crop) => void
+  onCrop?: (crop: Crop, slot?: PhotoSlot) => void
   onCommit?: () => void
-  onRender?: (format: Format, result: RenderResult | null, error?: string) => void
+  onRender?: (format: ArtworkFormat, result: RenderResult | null, error?: string) => void
 }
 export function ArtworkCanvas({
   project,
   bitmap,
+  secondBitmap,
   format,
+  activeSlot = 'first',
+  onSelectSlot,
   editable = false,
   safeArea = false,
   thumbnail = false,
@@ -33,10 +40,16 @@ export function ArtworkCanvas({
   const container = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(0)
   const [drawing, setDrawing] = useState(true)
-  const gesture = useRef<{ id: number; x: number; y: number; crop: Crop; ratio: number } | null>(
-    null,
-  )
-  const layout = getTemplate(project.templateId).layouts[format]
+  const gesture = useRef<{
+    id: number
+    x: number
+    y: number
+    crop: Crop
+    ratio: number
+    slot: PhotoSlot
+  } | null>(null)
+  const layout = artworkLayout(project, format)
+  const label = format === 'card' ? '电子小卡' : format === 'avatar' ? '应援头像' : '生日贺图'
 
   useEffect(() => {
     const element = container.current
@@ -54,15 +67,15 @@ export function ArtworkCanvas({
   }, [])
   useEffect(() => {
     let cancelled = false
-    if (!bitmap || !width) {
+    onRender?.(format, null)
+    if (!bitmap || !width || (format === 'card' && !secondBitmap)) {
       setDrawing(true)
       return
     }
-    onRender?.(format, null)
     void prepareFonts(project)
       .then(() => {
         if (cancelled || !canvas.current) return
-        const result = renderArtwork(canvas.current, project, bitmap, format, width)
+        const result = renderArtwork(canvas.current, project, bitmap, format, width, secondBitmap)
         setDrawing(false)
         onRender?.(format, result)
       })
@@ -77,39 +90,58 @@ export function ArtworkCanvas({
     return () => {
       cancelled = true
     }
-  }, [project, bitmap, format, width, onRender])
+  }, [project, bitmap, secondBitmap, format, width, onRender])
+  useEffect(() => {
+    gesture.current = null
+  }, [project.templateId, bitmap, secondBitmap, format])
 
   const pointerDown = (event: PointerEvent<HTMLDivElement>) => {
     if (!editable || !bitmap || event.button !== 0 || gesture.current || !container.current) return
     const bounds = container.current.getBoundingClientRect()
     const ratio = layout.width / bounds.width
-    const frame = photoFrame(project, format)
     const x = (event.clientX - bounds.left) * ratio
     const y = (event.clientY - bounds.top) * ratio
-    if (x < frame.x || x > frame.x + frame.width || y < frame.y || y > frame.y + frame.height)
-      return
+    // Reverse paint order: the small overlapping print is the topmost photo in a collage.
+    const frame = [...layout.layers]
+      .reverse()
+      .find(
+        (layer) =>
+          layer.type === 'photo' &&
+          x >= layer.x &&
+          x <= layer.x + layer.width &&
+          y >= layer.y &&
+          y <= layer.y + layer.height,
+      )
+    if (!frame || frame.type !== 'photo') return
+    const slot = frame.slot ?? 'first'
+    if (slot === 'second' && !secondBitmap) return
+    if (format === 'card' && slot !== activeSlot) onSelectSlot?.(slot)
     event.currentTarget.focus({ preventScroll: true })
     event.currentTarget.setPointerCapture(event.pointerId)
     gesture.current = {
       id: event.pointerId,
       x: event.clientX,
       y: event.clientY,
-      crop: projectCrop(project, format),
+      crop: format === 'card' ? cardCrop(project, slot) : projectCrop(project, format),
       ratio,
+      slot,
     }
   }
   const pointerMove = (event: PointerEvent<HTMLDivElement>) => {
     const start = gesture.current
     if (!start || !bitmap || event.pointerId !== start.id) return
+    const photo = start.slot === 'second' ? secondBitmap : bitmap
+    if (!photo) return
     onCrop?.(
       dragCrop(
-        bitmap.width,
-        bitmap.height,
-        photoFrame(project, format),
+        photo.width,
+        photo.height,
+        photoFrame(project, format, start.slot),
         start.crop,
         (event.clientX - start.x) * start.ratio,
         (event.clientY - start.y) * start.ratio,
       ),
+      start.slot,
     )
   }
   const pointerEnd = (event: PointerEvent<HTMLDivElement>) => {
@@ -125,16 +157,19 @@ export function ArtworkCanvas({
     )
       return
     event.preventDefault()
+    const photo = activeSlot === 'second' && format === 'card' ? secondBitmap : bitmap
+    if (!photo) return
     const delta = event.shiftKey ? 24 : 6
     onCrop?.(
       dragCrop(
-        bitmap.width,
-        bitmap.height,
-        photoFrame(project, format),
-        projectCrop(project, format),
+        photo.width,
+        photo.height,
+        photoFrame(project, format, activeSlot),
+        format === 'card' ? cardCrop(project, activeSlot) : projectCrop(project, format),
         event.key === 'ArrowLeft' ? -delta : event.key === 'ArrowRight' ? delta : 0,
         event.key === 'ArrowUp' ? -delta : event.key === 'ArrowDown' ? delta : 0,
       ),
+      activeSlot,
     )
   }
 
@@ -147,7 +182,7 @@ export function ArtworkCanvas({
       role={editable ? 'group' : undefined}
       aria-label={
         editable
-          ? `${format === 'avatar' ? '头像' : '贺图'}照片裁切，拖动或使用方向键移动`
+          ? `${format === 'card' ? `电子小卡照片 ${activeSlot === 'first' ? '1' : '2'}` : format === 'avatar' ? '头像照片' : '贺图照片'}裁切，拖动或使用方向键移动`
           : undefined
       }
       onPointerDown={pointerDown}
@@ -158,11 +193,26 @@ export function ArtworkCanvas({
       onKeyDown={keyDown}
       onKeyUp={onCommit}
     >
-      <canvas
-        ref={canvas}
-        role="img"
-        aria-label={`${format === 'avatar' ? '应援头像' : '生日贺图'}${thumbnail ? '缩略图' : '实时预览'}`}
-      />
+      <canvas ref={canvas} role="img" aria-label={`${label}${thumbnail ? '缩略图' : '实时预览'}`} />
+      {editable &&
+        format === 'card' &&
+        (() => {
+          const frame = photoFrame(project, format, activeSlot)
+          return (
+            <div
+              className="photo-selection"
+              aria-hidden="true"
+              style={{
+                left: `${(frame.x / layout.width) * 100}%`,
+                top: `${(frame.y / layout.height) * 100}%`,
+                width: `${(frame.width / layout.width) * 100}%`,
+                height: `${(frame.height / layout.height) * 100}%`,
+              }}
+            >
+              <span>{activeSlot === 'first' ? '1' : '2'}</span>
+            </div>
+          )
+        })()}
       {drawing && (
         <div className="artwork-loading">
           <span className="loading-dot" />

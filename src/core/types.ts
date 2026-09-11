@@ -1,4 +1,11 @@
 export type Format = 'avatar' | 'poster'
+export type ArtworkFormat = Format | 'card'
+export type PhotoSlot = 'first' | 'second'
+export interface PhotoCardState {
+  secondPhotoId: string
+  date: string
+  cropsByLayout: Record<string, Record<PhotoSlot, Crop>>
+}
 export type ColorMode = 'light' | 'dark'
 export type ColorToken = 'paper' | 'ink' | 'muted' | 'accent' | 'soft' | 'white' | 'onAccent'
 export type Decoration = 'sparkles' | 'lines'
@@ -14,7 +21,7 @@ export interface Crop {
   zoom: number
 }
 export interface ProjectState {
-  version: 2
+  version: 2 | 3
   templateId: string
   photoId: string
   name: string
@@ -24,6 +31,8 @@ export interface ProjectState {
   color: string
   decorations: Record<Decoration, boolean>
   cropsByTemplate: Record<string, Record<Format, Crop>>
+  /** Only version 3 records may contain a dual-photo card. Version 2 stays unchanged. */
+  card?: PhotoCardState
 }
 export type LegacyProjectState = Omit<ProjectState, 'version' | 'cropsByTemplate'> & {
   version: 1
@@ -44,7 +53,7 @@ interface BaseLayer {
 }
 export interface TextLayer extends BaseLayer, Rect {
   type: 'text'
-  content: 'name' | 'birthday' | 'wish' | { literal: string }
+  content: 'name' | 'birthday' | 'wish' | 'date' | { literal: string }
   font: 'sans' | 'serif'
   weight?: 400 | 500 | 600
   italic?: boolean
@@ -68,7 +77,7 @@ export type Layer =
         stroke?: boolean
         lineWidth?: number
       })
-  | (BaseLayer & Rect & { type: 'photo'; radius?: number })
+  | (BaseLayer & Rect & { type: 'photo'; radius?: number; slot?: PhotoSlot })
   | (BaseLayer & {
       type: 'line'
       x: number
@@ -95,4 +104,7 @@ export interface TemplateDefinition {
   colorMode?: ColorMode
   palettes: { name: string; color: string }[]
   layouts: Record<Format, Layout>
+}
+export interface CardTemplateDefinition extends Omit<TemplateDefinition, 'layouts' | 'tags'> {
+  layout: Layout
 }
