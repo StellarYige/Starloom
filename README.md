@@ -4,7 +4,7 @@
 
 一个完全在浏览器本地运行的开源物料制作工具。0.3.1 修正临时作品退出、制作入口和选色体验，并加入自动测试与 GitHub Pages 发布。保留双照片电子小卡、三套生日主题及配套头像、贺图。无需登录，所有图片处理、作品保存及导出都在本机完成。
 
-在线发布状态：等待本次 GitHub Actions 部署和线上验收，确认后补充实际入口。
+**在线使用：[打开星迹 Starloom](https://stellaryige.github.io/Starloom/)**。2026-09-11 已确认 Pages 部署成功，并通过 Chromium / WebKit 线上制作、保存与真实 PNG 导出验收。测试与发布状态见 [GitHub Actions](https://github.com/StellarYige/Starloom/actions/workflows/pages.yml)。
 
 ## 现在能做什么
 

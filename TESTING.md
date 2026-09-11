@@ -6,13 +6,17 @@
 
 Windows，Node.js 24.18.0，npm 12.0.1，Playwright 1.63.0；Chromium 项目使用 Microsoft Edge 152.0.4191.66，WebKit 项目使用 Playwright WebKit 26.6（build 2359）。两种引擎各运行桌面 1440 × 1000 和手机模拟 390 × 844、DPR 2。
 
-| 检查                    | 结果                                                                                         |
-| ----------------------- | -------------------------------------------------------------------------------------------- |
-| 单元测试                | 42 项通过，包含新增缩略图配额异常回滚与重试                                                  |
-| 全量浏览器回归          | 94 项全量执行后 91 项通过；修正测试就绪等待后，相关体验回归 20 项全部通过。CI 将再次全量执行 |
-| `/Starloom/` 生产包验证 | 36 项通过，包含两种引擎的核心流程及 Chromium 完整进程重启                                    |
-| 生产构建、格式检查      | TypeScript、Vite Pages 构建与格式检查通过                                                    |
-| GitHub Actions 与 Pages | 已配置工作流，待部署与线上验收                                                               |
+| 检查                    | 结果                                                                   |
+| ----------------------- | ---------------------------------------------------------------------- |
+| 单元测试                | 本机及 CI 均 42 项通过，包含新增缩略图配额异常回滚与重试               |
+| 全量浏览器回归          | Linux CI 94 项通过：Chromium 78 项、WebKit 16 项；保留全部 62 项旧回归 |
+| 本机新增体验回归        | 修正测试就绪等待后，相关 20 项全部通过                                 |
+| `/Starloom/` 生产包验证 | 本机及 CI 均 36 项通过，包含两种引擎的核心流程及 Chromium 完整进程重启 |
+| 生产构建、格式检查      | 本机及 CI 的 TypeScript、Vite Pages 构建与格式检查通过                 |
+| 真实线上站点            | Chromium / WebKit 桌面及手机模拟共 12 项通过，无失败、跳过或重试       |
+| GitHub Actions 与 Pages | 检查及部署成功，已核对部署提交、HTTP 200 与线上实际导出                |
+
+本机曾全量运行 94 项，其中 91 项通过、3 项在选色或保存保护的输入步骤失败；修正等待条件后相关 20 项及生产包 36 项通过。手机空列表排版微调后另复验 4 项，全部通过。最终完整 94 项由 GitHub 的 Ubuntu 运行器通过，未将本机定向复验写成一次全量通过。
 
 ```sh
 npm ci
@@ -44,6 +48,10 @@ npm run format:check
 预览服务同样显式传入 `--base=/Starloom/`，避免子路径资源请求被错误回退成 HTML。Vite 开发监听排除 `.qa/**`，避免测试浏览器资料的锁定文件造成 Windows `EBUSY` 或触发页面重载；测试资料与成品生成也不会与测试输出清理同时运行。
 
 工作流 `.github/workflows/pages.yml` 对 PR 只检查，`main` 全部检查通过后才上传 `dist/` 并部署到 Pages；检查任务仅有读取权限，部署任务才有 Pages / OIDC 权限。无 `gh-pages` 分支，不上传 `.qa/` 的资料、照片、截图或下载。
+
+实际在线入口：[星迹 Starloom](https://stellaryige.github.io/Starloom/)。首次成功发布核对功能提交 `8bf6531a9cb4015bc4e63e9eff9699d27f5c7c8b`（包含 `44b55f3`），[Actions 运行 34604973400](https://github.com/StellarYige/Starloom/actions/runs/34604973400) 的检查与部署均成功，Pages 部署记录的提交一致。文档更新继续使用同一工作流检查与发布，最新结果见 [Actions 列表](https://github.com/StellarYige/Starloom/actions/workflows/pages.yml)。
+
+线上验收直接访问上述 HTTPS 站点，不启动本机服务。12 项核心测试覆盖 `/Starloom/` 下的四张示例缩略图、Noto Sans SC / Cormorant Garamond 字体、默认续作、保存恢复、旧 File 记录及真实 PNG 导出和预览像素比较；四张线上示例原尺寸 PNG 的 SHA-256 与仓库清单全部一致，素材许可返回成功。报告与下载留在 `.qa/online-results.json`、`.qa/online-results/`，未上传。仅本机测试浏览器按网络环境使用代理，应用没有新增代理或外部 API。
 
 ## 未完成的真机验证
 
