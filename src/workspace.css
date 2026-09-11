@@ -216,17 +216,7 @@
 }
 .library-empty {
   text-align: center;
-  padding: 73px 15px;
-}
-.library-empty > div {
-  color: #8f9e7b;
-  width: 85px;
-  height: 85px;
-  display: grid;
-  place-items: center;
-  background: #edf0e3;
-  border-radius: 50%;
-  margin: 0 auto 27px;
+  padding: 38px 0 12px;
 }
 .library-empty h2 {
   font-weight: 500;
@@ -243,6 +233,72 @@
   color: #a0a590;
   font-size: 10px;
   letter-spacing: 1px;
+}
+.creation-examples {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  max-width: 940px;
+  margin: 0 auto;
+}
+.creation-example {
+  border: 1px solid #e3e7d8;
+  border-radius: 14px;
+  padding: 24px 20px 12px;
+  background: #fcfcf8;
+}
+.example-art {
+  height: 310px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+}
+.example-art img {
+  width: auto;
+  max-width: 46%;
+  height: auto;
+  max-height: 280px;
+  object-fit: contain;
+  box-shadow: 0 6px 18px #37412418;
+}
+.example-birthday img:first-child {
+  max-width: 57%;
+}
+.example-birthday img:last-child {
+  max-width: 32%;
+  align-self: flex-end;
+  margin-bottom: 22px;
+}
+.creation-example h3 {
+  font-size: 17px;
+  font-weight: 500;
+  color: #4e5e45;
+  margin: 14px 0 0;
+}
+.creation-example p {
+  margin: 10px 0;
+  font-size: 12px;
+}
+.library-empty .example-credit {
+  font-size: 11px;
+}
+.example-credit a {
+  color: #5d7150;
+  margin-left: 5px;
+  text-underline-offset: 3px;
+}
+@media (max-width: 640px) {
+  .creation-examples {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .example-art {
+    height: 260px;
+  }
+  .example-art img {
+    max-height: 240px;
+  }
 }
 .library-footnote {
   color: #979d8c;
@@ -369,6 +425,7 @@
     min-height: calc(100vh - 140px);
   }
   .library-heading {
+    flex-direction: column;
     gap: 15px;
     align-items: flex-start;
   }
@@ -382,7 +439,7 @@
   .library-heading .primary-button {
     padding: 0 13px;
     font-size: 12px;
-    margin-top: 10px;
+    margin-top: 0;
     flex-shrink: 0;
   }
   .work-grid {

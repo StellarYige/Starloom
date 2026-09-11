@@ -3,6 +3,8 @@ import { Download, FolderHeart, Redo2, RotateCcw, Sparkle, Undo2, Upload } from 
 import { ArtworkCanvas } from './components/ArtworkCanvas'
 import { ExportModal } from './components/ExportModal'
 import { LocalSaveNotice } from './components/LocalSaveNotice'
+import { CustomColorPicker } from './components/CustomColorPicker'
+import { TemporaryLeaveDialog } from './components/TemporaryLeaveDialog'
 import { useEditor } from './hooks/useEditor'
 import { cardTemplates, getCardTemplate } from './templates/photo-cards'
 import {
@@ -40,8 +42,6 @@ export default function PhotoCardEditor({
     asset: PhotoAsset
     secondAsset?: PhotoAsset
   } | null>(null)
-  const [hex, setHex] = useState(project.color)
-  useEffect(() => setHex(project.color), [project.color])
   const onRender = useCallback(
     (_format: ArtworkFormat, next: RenderResult | null, error?: string) => {
       setResult((previous) => (JSON.stringify(previous) === JSON.stringify(next) ? previous : next))
@@ -453,24 +453,14 @@ export default function PhotoCardEditor({
                     />
                   ))}
                 </div>
-                <div className="form-field">
-                  <label htmlFor="card-color">自定义颜色</label>
-                  <input
-                    id="card-color"
-                    type="text"
-                    value={hex}
-                    onChange={(event) => {
-                      const value = event.target.value
-                      setHex(value)
-                      if (/^#[\da-f]{6}$/i.test(value))
-                        editor.change((previous) => ({ ...previous, color: value }), 'color')
-                    }}
-                    onBlur={() => {
-                      setHex(project.color)
-                      editor.seal()
-                    }}
-                  />
-                </div>
+                <CustomColorPicker
+                  id="card-color"
+                  color={project.color}
+                  onChange={(color, group) =>
+                    editor.change((previous) => ({ ...previous, color }), group)
+                  }
+                  onSeal={editor.seal}
+                />
                 <div className="card-decorations">
                   {(['sparkles', 'lines'] as const).map((decoration) => (
                     <label key={decoration}>
@@ -530,6 +520,7 @@ export default function PhotoCardEditor({
         <span>Starloom ✦ 为每一份热爱，留下一点星迹。</span>
         <span>把喜欢，做成作品</span>
       </footer>
+      {editor.confirmingLeave && <TemporaryLeaveDialog onDecision={editor.decideLeave} />}
       {snapshot && <ExportModal snapshot={snapshot} onClose={() => setSnapshot(null)} />}
     </div>
   )

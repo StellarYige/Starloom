@@ -1,7 +1,7 @@
 {
   "name": "starloom",
   "private": true,
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "星迹 Starloom — 把喜欢，做成作品。本地双照片电子小卡与生日应援制作工具。",
   "type": "module",
   "license": "MIT",
@@ -16,7 +16,11 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "build:pages": "tsc -b && vite build --base=/Starloom/",
+    "test:production": "playwright test --config=playwright.production.config.ts",
+    "test:online": "playwright test --config=playwright.online.config.ts",
+    "examples": "node scripts/generate-examples.mjs"
   },
   "dependencies": {
     "@fontsource/cormorant-garamond": "^5.3.0",

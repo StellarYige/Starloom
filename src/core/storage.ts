@@ -324,7 +324,18 @@ export async function getWork(id: string): Promise<WorkRecord> {
   if (!value) throw new Error('这份作品已被删除，无法继续保存或打开。')
   if (!isValidWork(value)) throw new Error('这份作品暂不可读取，原数据仍保留。')
   artworkTemplate(value.project)
-  return value
+  // A WebKit IDB File/Blob can still refer to a database backing file that a
+  // later revision replaces. Keep an independent byte snapshot for this session;
+  // do not rewrite the stored record or change its IDs, schema or timestamps.
+  const snapshot = async (asset: PhotoAsset): Promise<PhotoAsset> => ({
+    ...asset,
+    blob: new Blob([await asset.blob.arrayBuffer()], { type: asset.blob.type }),
+  })
+  const [asset, secondAsset] = await Promise.all([
+    snapshot(value.asset),
+    value.secondAsset ? snapshot(value.secondAsset) : undefined,
+  ])
+  return { ...value, asset, ...(secondAsset ? { secondAsset } : {}) }
 }
 export function readActiveWorkId(): Promise<string | null> {
   return transact(['meta'], 'readonly', (tx, done) => {
@@ -438,7 +449,7 @@ export function deleteWork(id: string): Promise<void> {
   })
 }
 export function saveThumbnail(id: string, revision: number, thumbnail: Blob): Promise<boolean> {
-  return transact(['works'], 'readwrite', (tx, done) => {
+  return transact(['works'], 'readwrite', (tx, done, fail) => {
     const store = tx.objectStore('works')
     const request = store.get(id)
     request.onsuccess = () => {
@@ -447,8 +458,12 @@ export function saveThumbnail(id: string, revision: number, thumbnail: Blob): Pr
         done(false)
         return
       }
-      store.put({ ...work, thumbnail, thumbnailRevision: revision })
-      done(true)
+      try {
+        store.put({ ...work, thumbnail, thumbnailRevision: revision })
+        done(true)
+      } catch (error) {
+        fail(error)
+      }
     }
   })
 }

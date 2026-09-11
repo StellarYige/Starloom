@@ -1,0 +1,37 @@
+{
+  "generator": "scripts/generate-examples.mjs",
+  "browser": "152.0.4191.66",
+  "photo": {
+    "file": "assets/portrait.jpg",
+    "author": "Aiony Haust",
+    "source": "https://unsplash.com/photos/3TLl_97HNJo",
+    "license": "https://unsplash.com/license"
+  },
+  "note": "Actual Starloom downloads using default fictional text. WebP previews are resized from these PNGs.",
+  "exports": [
+    {
+      "id": "birthday-avatar",
+      "width": 1600,
+      "height": 1600,
+      "sha256": "063310244c6d4d9d56bf89280eba57ee86c128efcd834ae97cb93944454a6615"
+    },
+    {
+      "id": "birthday-poster",
+      "width": 2400,
+      "height": 3000,
+      "sha256": "59054f4d856f63877cf7bc9c7683fd8ae335410fd0e9be9ca0f8daa644d3e661"
+    },
+    {
+      "id": "photo-strip",
+      "width": 1800,
+      "height": 2400,
+      "sha256": "ef89e150b9cfb2d40731ad91511708590439bef9cd13237c0f4246e433c53fad"
+    },
+    {
+      "id": "portrait-collage",
+      "width": 1800,
+      "height": 2400,
+      "sha256": "2ded84ad033221ecf5ec239e6393c6712f0f4ab3697f735497a625ca0d3f4609"
+    }
+  ]
+}

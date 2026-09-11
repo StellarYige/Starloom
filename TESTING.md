@@ -1,4 +1,57 @@
-# 0.3.0 验收记录
+# 0.3.1 验收记录
+
+验收日期：2026-09-11。基于 `main` 的 `0883b13` 增量修正；下方保留 0.3.0 / 0.2.0 历史结果。
+
+## 执行与环境
+
+Windows，Node.js 24.18.0，npm 12.0.1，Playwright 1.63.0；Chromium 项目使用 Microsoft Edge 152.0.4191.66，WebKit 项目使用 Playwright WebKit 26.6（build 2359）。两种引擎各运行桌面 1440 × 1000 和手机模拟 390 × 844、DPR 2。
+
+| 检查                    | 结果                                                                                         |
+| ----------------------- | -------------------------------------------------------------------------------------------- |
+| 单元测试                | 42 项通过，包含新增缩略图配额异常回滚与重试                                                  |
+| 全量浏览器回归          | 94 项全量执行后 91 项通过；修正测试就绪等待后，相关体验回归 20 项全部通过。CI 将再次全量执行 |
+| `/Starloom/` 生产包验证 | 36 项通过，包含两种引擎的核心流程及 Chromium 完整进程重启                                    |
+| 生产构建、格式检查      | TypeScript、Vite Pages 构建与格式检查通过                                                    |
+| GitHub Actions 与 Pages | 已配置工作流，待部署与线上验收                                                               |
+
+```sh
+npm ci
+npx playwright install chromium webkit
+npm test
+npm run test:e2e
+npm run build:pages
+npm run test:production
+npm run format:check
+```
+
+## 回归范围与浏览器区分
+
+- `experience.spec.ts`：先在原实现复现临时模式无法返回列表，再验证取消保留编辑、确认放弃后离开；生日和小卡保存失败时仍阻止离开，重试后保留修改；共用可视化选色器、HEX 校验、撤销重做和刷新恢复。
+- `core-workflow.spec.ts`：明确的两个制作入口、四张真实成品示例、字体和图片路径；生日制作、导入照片、配色、保存和默认续作；双图独立换图、布局裁切记忆、Blob 哈希恢复；实际下载头像、贺图和两种小卡 PNG，并与界面预览比较像素（平均通道差 < 5 / 255）。
+- `desktop` / `mobile` 运行全部原有测试与新增共享测试，使用 Chromium 引擎。原 CDP 触屏测试留在 `editor.spec.ts` / `card-interaction.spec.ts`；`restart.spec.ts` 继续验证完全退出浏览器进程、PID 消失及相同资料和来源恢复。
+- `webkit-desktop` / `webkit-mobile` 仅匹配上述两个共享测试文件，实际启动 WebKit；不调用 CDP，不以 Chromium 手机模拟作为 WebKit 结果，也不宣称做过 WebKit PID 重启验证。
+- Windows WebKit 的非持久上下文在最小 Blob 写入实验中报 `Error preparing Blob/File data to be stored in object store`，而独立持久资料可写入。因此 Windows WebKit 通过 `browser-fixtures.ts` 使用每项测试独立的持久资料目录；目录名使用短 ASCII 名称，避开该端口对中文 SQLite 路径的错误。应用存储、照片格式与 IndexedDB 均未模拟或改写。Linux CI 使用标准 WebKit 上下文。
+- 另修正缩略图同步写入异常未捕获的问题，事务失败不会污染已保存作品，单元测试验证失败后原记录和重试。
+- 测试等待「正在打开作品…」结束后才填写新作品，避免在尚不可交互的编辑区输入；保存失败回归先确认失败状态再测试离开保护。连续输入合并由原历史单元测试覆盖，选色回归不依赖机器性能恰好落在 900ms 分组窗口内。
+- WebKit 回归还发现恢复后的 IDB `File` 在后续写入后可能变为不可读（解码报 `InvalidStateError`，读取字节报 `NotFoundError`）。导入与读取作品时改为持有独立 Blob 字节副本，读取不改写旧记录、版本、ID、时间或图片字节。共享小卡测试显式写入 0.3 使用的 File 记录，再恢复、保存、切换布局并实际导出；修复后的桌面 / 手机 WebKit 定向重复验证通过。
+
+## 成品与发布验证
+
+`public/examples/` 收录经实际界面下载的四张授权示例 PNG，附尺寸与 SHA-256 清单；WebP 缩略图从这些 PNG 缩小，用于空列表和 README。已查看两种小卡真实导出及空列表桌面 / 手机画面；手机制作按钮放在标题下方，避免挤压标题。原照片来源和许可见 `public/licenses/ASSETS.md`。`npm run examples` 可重建，仅使用仓库授权人像和虚构示例文案。
+
+生产配置通过 `npm run build:pages` 显式构建 `/Starloom/`，`playwright.production.config.ts` 在独立 4175 端口验证同一 `dist/` 的共享流程、真实导出与 Chromium 重启。线上测试用 `STARLOOM_ONLINE_URL` 指向部署返回的真实入口，执行 `npm run test:online`，不启动本机服务器。
+
+预览服务同样显式传入 `--base=/Starloom/`，避免子路径资源请求被错误回退成 HTML。Vite 开发监听排除 `.qa/**`，避免测试浏览器资料的锁定文件造成 Windows `EBUSY` 或触发页面重载；测试资料与成品生成也不会与测试输出清理同时运行。
+
+工作流 `.github/workflows/pages.yml` 对 PR 只检查，`main` 全部检查通过后才上传 `dist/` 并部署到 Pages；检查任务仅有读取权限，部署任务才有 Pages / OIDC 权限。无 `gh-pages` 分支，不上传 `.qa/` 的资料、照片、截图或下载。
+
+## 未完成的真机验证
+
+尚未使用实体 iPhone / Android，也未使用 macOS Safari 或 Firefox。Playwright WebKit 是真实 WebKit 引擎测试，但不等同于 Safari 真机；系统选色弹窗外观、软键盘、相册保存、长按下载、后台回收仍需实体设备复核。没有验证断电、系统强杀或长期存储回收。Windows WebKit 临时上下文的 Blob 限制不代表 Safari 私密浏览结论；请使用普通浏览器资料并及时下载重要成品。
+
+---
+
+# 0.3.0 历史验收记录
 
 验收日期：2026-09-11。基于本地 0.2 增量开发，旧记录保留在本文后半部分。
 

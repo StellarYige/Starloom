@@ -13,8 +13,8 @@ const go = (page: Page, step: string) =>
     .getByRole('button', { name: new RegExp(step) })
     .click()
 async function start(page: Page) {
-  await page.goto('/')
-  await page.getByRole('button', { name: '新建物料', exact: true }).click()
+  await page.goto('./')
+  await page.getByRole('button', { name: '制作生日应援', exact: true }).click()
   await ready(page)
 }
 async function ready(page: Page) {
@@ -244,7 +244,7 @@ test('new, copy, rename, independent edits, delete confirmation and last-work de
   await go(page, '写祝福')
   await expect(page.getByLabel('TA 的名字')).toHaveValue('原作的姓名')
   await expect(page.getByRole('button', { name: '撤销', exact: true })).toBeDisabled()
-  await page.getByRole('button', { name: '新建物料', exact: true }).click()
+  await page.getByRole('button', { name: '制作生日应援', exact: true }).click()
   await ready(page)
   await library(page)
   expect((await records(page)).works).toHaveLength(3)
@@ -280,7 +280,7 @@ test('a pending save is flushed before switching and never written into another 
   await start(page)
   await library(page)
   await rename(page, '新的生日应援', '甲')
-  await page.getByRole('button', { name: '新建物料', exact: true }).click()
+  await page.getByRole('button', { name: '制作生日应援', exact: true }).click()
   await ready(page)
   await library(page)
   await rename(page, '新的生日应援', '乙')
@@ -328,7 +328,7 @@ test('a late uploaded photo cannot leak into the next editing session', async ({
   await start(page)
   await library(page)
   await rename(page, '新的生日应援', '甲')
-  await page.getByRole('button', { name: '新建物料', exact: true }).click()
+  await page.getByRole('button', { name: '制作生日应援', exact: true }).click()
   await ready(page)
   await library(page)
   await rename(page, '新的生日应援', '乙')
@@ -473,7 +473,7 @@ test('v1 draft migrates once, preserves original bytes and every field, and surv
   page,
 }) => {
   const legacy = await seedLegacy(page)
-  await page.goto('/')
+  await page.goto('./')
   await ready(page)
   const first = await records(page)
   expect(first.works).toHaveLength(1)
@@ -529,7 +529,7 @@ test('migration transaction failure preserves legacy data and can be retried wit
       return request
     }
   })
-  await page.goto('/')
+  await page.goto('./')
   await expect(page.getByRole('alert')).toBeVisible()
   const failed = await records(page)
   expect(failed.works).toHaveLength(0)
@@ -543,9 +543,9 @@ test('migration transaction failure preserves legacy data and can be retried wit
 
 test('corrupt v1 data stays untouched when a new independent work is created', async ({ page }) => {
   await seedLegacy(page, true)
-  await page.goto('/')
+  await page.goto('./')
   await expect(page.getByRole('alert')).toContainText('原数据已保留')
-  await page.getByRole('button', { name: '新建物料', exact: true }).click()
+  await page.getByRole('button', { name: '制作生日应援', exact: true }).click()
   await ready(page)
   const state = await records(page)
   expect(state.legacy).toEqual({ schemaVersion: 999, marker: 'keep-original' })
@@ -569,7 +569,7 @@ test('database upgrade blocked by another tab can recover without deleting the o
       }),
   )
   const next = await context.newPage()
-  await next.goto('/')
+  await next.goto('./')
   await expect(next.getByRole('alert')).toContainText('关闭其他星迹页面')
   await page.evaluate(() => (window as any).releaseOldDatabase())
   await next.getByRole('button', { name: '重试读取与迁移' }).click()

@@ -6,7 +6,7 @@ test('saved works survive complete browser process exit and reopen with the same
   test.setTimeout(120_000)
   const profile = info.outputPath('browser-profile')
   const options = {
-    channel: process.env.PLAYWRIGHT_CHANNEL || 'msedge',
+    channel: info.project.use.channel,
     headless: true,
     baseURL: info.project.use.baseURL!,
     viewport: info.project.use.viewport,
@@ -25,12 +25,12 @@ test('saved works survive complete browser process exit and reopen with the same
     const firstPid = await processId(context)
     const version = context.browser()!.version()
     const page = await context.newPage()
-    await page.goto('/')
-    await page.getByRole('button', { name: '新建物料', exact: true }).click()
+    await page.goto('./')
+    await page.getByRole('button', { name: '制作生日应援', exact: true }).click()
     await saved(page)
     const birthday = await current(page)
     await page.getByRole('button', { name: '我的物料', exact: true }).click()
-    await page.getByRole('button', { name: '新建电子小卡', exact: true }).click()
+    await page.getByRole('button', { name: '制作电子小卡', exact: true }).click()
     await ready(page)
     await page
       .getByLabel('上传照片 1', { exact: true })
@@ -73,7 +73,7 @@ test('saved works survive complete browser process exit and reopen with the same
     const secondPid = await processId(context)
     expect(secondPid).not.toBe(firstPid)
     const reopened = await context.newPage()
-    await reopened.goto('/')
+    await reopened.goto('./')
     await ready(reopened)
     await saved(reopened)
     const after = await current(reopened)

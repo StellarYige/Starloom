@@ -151,7 +151,7 @@ test('a corrupt card stays untouched while an independent new work is created', 
   )
   await page.reload()
   await expect(page.locator('.library-message')).toContainText('暂不可读取')
-  await page.getByRole('button', { name: '新建电子小卡', exact: true }).click()
+  await page.getByRole('button', { name: '制作电子小卡', exact: true }).click()
   await ready(page)
   await saved(page)
   expect((await current(page)).id).not.toBe(original.id)

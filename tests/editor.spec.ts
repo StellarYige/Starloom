@@ -102,8 +102,8 @@ async function getLocalDraft(page: Page) {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('/')
-  await page.getByRole('button', { name: '新建物料', exact: true }).click()
+  await page.goto('./')
+  await page.getByRole('button', { name: '制作生日应援', exact: true }).click()
   await expect(page.getByRole('button', { name: '选好了，放入照片' })).toBeEnabled()
   await page.waitForFunction(() => document.querySelectorAll('.artwork-loading').length === 0)
 })
@@ -452,7 +452,7 @@ test('corrupt work is reported and not overwritten by the sample project', async
   )
   await page.reload()
   await expect(page.getByRole('alert')).toContainText('暂不可读取')
-  await expect(page.getByRole('button', { name: '新建物料', exact: true })).toBeEnabled()
+  await expect(page.getByRole('button', { name: '制作生日应援', exact: true })).toBeEnabled()
   expect((await getLocalDraft(page)).marker).toBe('keep-original')
 })
 

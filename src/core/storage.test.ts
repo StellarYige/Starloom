@@ -88,6 +88,18 @@ async function raw(store: string, key: string) {
   })
 }
 describe('independent local works', () => {
+  it('rejects a synchronous thumbnail quota failure and retains the saved work for retry', async () => {
+    const work = await createWork(project(), asset)
+    const failure = new DOMException('Thumbnail storage full', 'QuotaExceededError')
+    const spy = vi.spyOn(IDBObjectStore.prototype, 'put').mockImplementation(() => {
+      throw failure
+    })
+    await expect(saveThumbnail(work.id, work.revision, new Blob(['preview']))).rejects.toBe(failure)
+    spy.mockRestore()
+    expect(await getWork(work.id)).toEqual(work)
+    expect(await saveThumbnail(work.id, work.revision, new Blob(['retry']))).toBe(true)
+    expect(await (await getWork(work.id)).thumbnail?.text()).toBe('retry')
+  })
   it('restores uploaded bytes and every template crop in one record', async () => {
     const content = updateCrop(
       switchTemplate({ ...project(), name: '草稿恢复', color: '#123456' }, 'heart-polaroid', asset),

@@ -38,6 +38,7 @@ Unsplash 标准许可允许免费使用、复制、修改和分发照片，包�
 | 作品中的四角星芒、边框、细线、色块 | Starloom contributors 原创 Canvas 几何绘制，代码在 `src/core/render.ts`，布局在主题配置中 | MIT，与项目 `LICENSE` 相同 |
 | 心动拍立得的错位纸张、相纸边框、日期标签；此刻主场的舞台色块与排版 | Starloom contributors 原创，使用现有矩形、线条、星芒与文字图层，未增加外部贴纸、照片或字体 | MIT，与项目 `LICENSE` 相同 |
 | `docs/theme-comparison/` 的六张成品与对照页 | 使用上述 Aiony Haust 示例照片和现有字体，通过 Starloom 实际界面导出；示例姓名、生日、祝福为虚构 | 原创布局和文案采用 MIT；照片和字体仍保留各自许可，不改授 MIT |
+| `public/examples/` 的四张成品 PNG 与 WebP 缩略图 | 使用上述 Aiony Haust 授权示例照片、现有字体及默认虚构文案，经真实界面下载；`scripts/generate-examples.mjs` 可重建，`manifest.json` 记录尺寸和哈希 | 原创布局和文案 MIT；照片保留 Unsplash License，字体保留 OFL；WebP 仅缩小 PNG，不改变构图 |
 | 界面底纹与卡片布局 | Starloom contributors 原创 CSS | MIT |
 | 品牌文案与示例祝福 | Starloom contributors 原创文本 | MIT |
 | 0.3 双照片小卡的照片条、相纸拼贴、纸胶带与示例短句 | Starloom contributors 原创 Canvas 布局与文字；沿用现有授权人像和本地字体，未增加外部照片 | 原创部分 MIT；照片和字体保留各自许可 |

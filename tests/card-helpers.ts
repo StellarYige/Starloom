@@ -2,14 +2,17 @@ import { expect } from '@playwright/test'
 import type { Page, TestInfo } from '@playwright/test'
 import { readFile } from 'node:fs/promises'
 
-export const saved = (page: Page) =>
-  expect(page.locator('.workspace-status')).toContainText('已保存到本机')
+export async function saved(page: Page) {
+  await expect(page.locator('.workspace-status')).toContainText('已保存到本机')
+  await expect(page.getByText('正在打开作品…', { exact: true })).toBeHidden()
+}
 export async function ready(page: Page) {
   await expect(page.getByRole('button', { name: '导出电子小卡 PNG', exact: true })).toBeEnabled()
+  await expect(page.getByText('正在打开作品…', { exact: true })).toBeHidden()
 }
 export async function startCard(page: Page) {
-  await page.goto('/')
-  await page.getByRole('button', { name: '新建电子小卡', exact: true }).click()
+  await page.goto('./')
+  await page.getByRole('button', { name: '制作电子小卡', exact: true }).click()
   await ready(page)
 }
 export async function readWorks(page: Page) {
@@ -84,6 +87,7 @@ export async function fixture(page: Page, color: string, width = 1400, height = 
 export async function exportCard(page: Page, info: TestInfo, id: string) {
   await ready(page)
   await page.getByRole('button', { name: '导出电子小卡 PNG', exact: true }).click()
+  await expect(page.getByRole('link', { name: '下载小卡 PNG', exact: true })).toBeVisible()
   const [download] = await Promise.all([
     page.waitForEvent('download'),
     page.getByRole('link', { name: '下载小卡 PNG', exact: true }).click(),

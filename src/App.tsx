@@ -30,6 +30,8 @@ import { ExportModal } from './components/ExportModal'
 import { Modal } from './components/Modal'
 import { ThemeSelector } from './components/ThemeSelector'
 import { LocalSaveNotice } from './components/LocalSaveNotice'
+import { CustomColorPicker } from './components/CustomColorPicker'
+import { TemporaryLeaveDialog } from './components/TemporaryLeaveDialog'
 import { useEditor } from './hooks/useEditor'
 import { getTemplate } from './templates'
 import { birthdayText, countCharacters, daysInMonth, validateContent } from './core/project'
@@ -69,7 +71,6 @@ export default function App({
   const [format, setFormat] = useState<Format>('poster')
   const [safeArea, setSafeArea] = useState(false)
   const [dragOver, setDragOver] = useState(false)
-  const [hex, setHex] = useState(project.color)
   const [modal, setModal] = useState<'help' | 'about' | null>(null)
   const [exportSnapshot, setExportSnapshot] = useState<{
     project: ProjectState
@@ -110,7 +111,6 @@ export default function App({
     },
     [],
   )
-  useEffect(() => setHex(project.color.toUpperCase()), [project.color])
   useEffect(() => {
     if (!editor.notice) return
     const timer = window.setTimeout(() => editor.setNotice(''), 6500)
@@ -689,49 +689,14 @@ export default function App({
                     或使用你的应援色
                     <span />
                   </div>
-                  <div className="form-field">
-                    <label htmlFor="color-hex">自定义颜色</label>
-                    <div className="custom-color">
-                      <label className="color-picker" title="打开颜色选择器">
-                        <input
-                          type="color"
-                          aria-label="自定义应援色"
-                          value={project.color}
-                          onChange={(event) =>
-                            editor.change(
-                              (previous) => ({ ...previous, color: event.target.value }),
-                              'color-picker',
-                            )
-                          }
-                          onBlur={editor.seal}
-                        />
-                      </label>
-                      <input
-                        id="color-hex"
-                        type="text"
-                        spellCheck={false}
-                        autoComplete="off"
-                        maxLength={7}
-                        value={hex}
-                        aria-invalid={!/^#[\da-f]{6}$/i.test(hex)}
-                        onChange={(event) => {
-                          const value = event.target.value
-                          setHex(value)
-                          if (/^#[\da-f]{6}$/i.test(value))
-                            editor.change(
-                              (previous) => ({ ...previous, color: value }),
-                              'color-hex',
-                            )
-                        }}
-                        onBlur={() => {
-                          if (!/^#[\da-f]{6}$/i.test(hex)) setHex(project.color.toUpperCase())
-                          editor.seal()
-                        }}
-                      />
-                      <span>HEX</span>
-                    </div>
-                    <p className="field-hint">输入 # 加六位色值，例如 #75866B。</p>
-                  </div>
+                  <CustomColorPicker
+                    id="color-hex"
+                    color={project.color}
+                    onChange={(color, group) =>
+                      editor.change((previous) => ({ ...previous, color }), group)
+                    }
+                    onSeal={editor.seal}
+                  />
                   <div
                     className="color-letter"
                     style={{ '--letter-color': project.color } as CSSProperties}
@@ -949,7 +914,7 @@ export default function App({
             }}
           >
             <Plus size={13} />
-            新建物料
+            制作生日应援
           </button>
         </div>
       </main>
@@ -975,6 +940,7 @@ export default function App({
           </button>
         </div>
       )}
+      {editor.confirmingLeave && <TemporaryLeaveDialog onDecision={editor.decideLeave} />}
       {modal === 'help' && (
         <Modal title="一份生日心意，六个小步骤" onClose={() => setModal(null)}>
           <p className="modal-intro">不需要设计经验，跟着模板就能完成。</p>

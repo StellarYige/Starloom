@@ -18,7 +18,7 @@ export async function importPhoto(file: File): Promise<PhotoAsset> {
     const ratio = Math.min(1, 4096 / Math.max(image.width, image.height))
     const width = Math.max(1, Math.round(image.width * ratio))
     const height = Math.max(1, Math.round(image.height * ratio))
-    let blob: Blob = file
+    let blob: Blob
     if (ratio < 1) {
       const canvas = document.createElement('canvas')
       try {
@@ -37,6 +37,9 @@ export async function importPhoto(file: File): Promise<PhotoAsset> {
         canvas.width = 1
         canvas.height = 1
       }
+    } else {
+      // Own the bytes instead of retaining a File backed by an external/temp path.
+      blob = new Blob([await file.arrayBuffer()], { type: file.type })
     }
     const id =
       crypto.randomUUID?.() ??

@@ -101,12 +101,12 @@ test('photos replace independently, remember each layout, undo redo and restore 
 test('card copy rename thumbnail and deletion coexist with original birthday works', async ({
   page,
 }) => {
-  await page.goto('/')
-  await page.getByRole('button', { name: '新建物料', exact: true }).click()
+  await page.goto('./')
+  await page.getByRole('button', { name: '制作生日应援', exact: true }).click()
   await saved(page)
   const birthday = await current(page)
   await page.getByRole('button', { name: '我的物料', exact: true }).click()
-  await page.getByRole('button', { name: '新建电子小卡', exact: true }).click()
+  await page.getByRole('button', { name: '制作电子小卡', exact: true }).click()
   await ready(page)
   await page.getByLabel('姓名', { exact: true }).fill('收藏日常')
   await page.getByRole('button', { name: '我的物料', exact: true }).click()

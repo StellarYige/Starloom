@@ -59,6 +59,14 @@ export function useEditor(work: WorkRecord, onSaved: () => void, temporary = fal
   const [uploads, setUploads] = useState({ first: false, second: false })
   const importing = uploads.first || uploads.second
   const [transitioning, setTransitioning] = useState(false)
+  const [confirmingLeave, setConfirmingLeave] = useState(false)
+  const leaveDecision = useRef<((discard: boolean) => void) | null>(null)
+  const decideLeave = useCallback((discard: boolean) => {
+    const resolve = leaveDecision.current
+    leaveDecision.current = null
+    setConfirmingLeave(false)
+    resolve?.(discard)
+  }, [])
   const project = history.present
   const asset = assets.current.get(project.photoId)
   const secondAsset = isPhotoCard(project)
@@ -77,6 +85,8 @@ export function useEditor(work: WorkRecord, onSaved: () => void, temporary = fal
     alive.current = true
     return () => {
       alive.current = false
+      leaveDecision.current?.(false)
+      leaveDecision.current = null
       ++uploadSequence.current.first
       ++uploadSequence.current.second
     }
@@ -234,20 +244,29 @@ export function useEditor(work: WorkRecord, onSaved: () => void, temporary = fal
     [change],
   )
   const prepareLeave = useCallback(async () => {
+    if (temporary) {
+      if (leaveDecision.current) return false
+      const discard = await new Promise<boolean>((resolve) => {
+        leaveDecision.current = resolve
+        setConfirmingLeave(true)
+      })
+      // Cancelling must also preserve any photo import already in progress.
+      if (!discard || !alive.current) return false
+    }
     ++uploadSequence.current.first
     ++uploadSequence.current.second
     uploadPending.current = { first: false, second: false }
     setUploads({ first: false, second: false })
     setTransitioning(true)
     dispatch({ type: 'seal' })
-    const saved = await saveNow()
+    const saved = temporary || (await saveNow())
     if (alive.current) {
       setTransitioning(false)
       if (!saved)
         setError('当前修改尚未保存，已为你留在这份作品。可以继续编辑、重试保存或先导出图片。')
     }
     return saved
-  }, [dispatch, saveNow])
+  }, [dispatch, saveNow, temporary])
   return {
     project,
     asset,
@@ -273,6 +292,8 @@ export function useEditor(work: WorkRecord, onSaved: () => void, temporary = fal
     upload,
     saveNow,
     prepareLeave,
+    confirmingLeave,
+    decideLeave,
     storageAllowed: !temporary,
   }
 }

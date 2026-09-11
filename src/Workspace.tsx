@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ArrowRight,
   Copy,
-  FolderHeart,
   Image,
   LoaderCircle,
   LockKeyhole,
@@ -291,7 +290,7 @@ export default function Workspace() {
               }}
             >
               <Plus size={17} />
-              新建电子小卡
+              制作电子小卡
             </button>
             <button
               className="primary-button"
@@ -301,7 +300,7 @@ export default function Workspace() {
               }}
             >
               <Plus size={17} />
-              新建物料
+              制作生日应援
             </button>
           </div>
         </section>
@@ -361,16 +360,62 @@ export default function Workspace() {
         )}
         {!works.length && !busy ? (
           <section className="library-empty">
-            <div>
-              <FolderHeart size={45} strokeWidth={1.15} />
-            </div>
             <h2>第一份心意，从这里开始</h2>
-            <p>
-              收藏两帧日常，或为 TA 做一套生日物料。
-              <br />
-              每份作品都会独立保存，下次回来接着做。
+            <p>从上方选择想做的作品，换上照片和文字，就能下载自己的成品。</p>
+            <div className="creation-examples">
+              <article className="creation-example" aria-label="生日应援成品示例">
+                <div className="example-art example-birthday">
+                  <img
+                    src={`${import.meta.env.BASE_URL}examples/birthday-poster.webp`}
+                    alt="生日来信贺图成品示例"
+                    width="480"
+                    height="600"
+                  />
+                  <img
+                    src={`${import.meta.env.BASE_URL}examples/birthday-avatar.webp`}
+                    alt="配套应援头像成品示例"
+                    width="480"
+                    height="480"
+                  />
+                </div>
+                <h3>生日应援</h3>
+                <p>
+                  一张照片，一套配套头像与生日贺图。
+                  <br />3 款主题 · 1600px 头像 / 2400 × 3000 贺图
+                </p>
+              </article>
+              <article className="creation-example" aria-label="电子小卡成品示例">
+                <div className="example-art example-cards">
+                  <img
+                    src={`${import.meta.env.BASE_URL}examples/photo-strip.webp`}
+                    alt="上下照片条小卡成品示例"
+                    width="480"
+                    height="640"
+                  />
+                  <img
+                    src={`${import.meta.env.BASE_URL}examples/portrait-collage.webp`}
+                    alt="写真拼贴小卡成品示例"
+                    width="480"
+                    height="640"
+                  />
+                </div>
+                <h3>电子小卡</h3>
+                <p>
+                  两张照片，收藏日常、纪念或喜欢的瞬间。
+                  <br />2 种布局 · 日期可选 · 1800 × 2400 PNG
+                </p>
+              </article>
+            </div>
+            <p className="example-credit">
+              示例由星迹实际导出，使用授权照片与虚构文案。
+              <a
+                href={`${import.meta.env.BASE_URL}licenses/ASSETS.md`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                素材来源
+              </a>
             </p>
-            <span>双照片小卡 · 配套头像与贺图 · 免费高清导出</span>
           </section>
         ) : (
           <div className="work-grid" aria-label="本地作品列表" inert={busy}>
