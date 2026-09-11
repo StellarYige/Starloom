@@ -1,0 +1,6 @@
+node_modules
+dist
+.qa
+public/licenses
+package-lock.json
+public/favicon.svg
