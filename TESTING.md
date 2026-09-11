@@ -30,7 +30,7 @@ npm run format:check
 - `core-workflow.spec.ts`：明确的两个制作入口、四张真实成品示例、字体和图片路径；生日制作、导入照片、配色、保存和默认续作；双图独立换图、布局裁切记忆、Blob 哈希恢复；实际下载头像、贺图和两种小卡 PNG，并与界面预览比较像素（平均通道差 < 5 / 255）。
 - `desktop` / `mobile` 运行全部原有测试与新增共享测试，使用 Chromium 引擎。原 CDP 触屏测试留在 `editor.spec.ts` / `card-interaction.spec.ts`；`restart.spec.ts` 继续验证完全退出浏览器进程、PID 消失及相同资料和来源恢复。
 - `webkit-desktop` / `webkit-mobile` 仅匹配上述两个共享测试文件，实际启动 WebKit；不调用 CDP，不以 Chromium 手机模拟作为 WebKit 结果，也不宣称做过 WebKit PID 重启验证。
-- Windows WebKit 的非持久上下文在最小 Blob 写入实验中报 `Error preparing Blob/File data to be stored in object store`，而独立持久资料可写入。因此 Windows WebKit 通过 `browser-fixtures.ts` 使用每项测试独立的持久资料目录；目录名使用短 ASCII 名称，避开该端口对中文 SQLite 路径的错误。应用存储、照片格式与 IndexedDB 均未模拟或改写。Linux CI 使用标准 WebKit 上下文。
+- Windows WebKit 的非持久上下文在最小 Blob 写入实验中报 `Error preparing Blob/File data to be stored in object store`，而独立持久资料可写入。首次 Linux CI 中，Chromium 78 项、WebKit 空列表和临时退出 4 项通过，使用非持久上下文的 WebKit 新建作品流程 12 项失败。因此 `browser-fixtures.ts` 在所有平台统一使用每项测试独立的普通持久资料目录，验证真实本地保存；目录名使用短 ASCII 名称，避开 Windows 端口对中文 SQLite 路径的错误。应用存储、照片格式与 IndexedDB 均未模拟或改写，这些测试不代表私密浏览验证。失败时仅在 CI 日志记录引擎、站点和界面错误提示，不上传资料或照片。
 - 另修正缩略图同步写入异常未捕获的问题，事务失败不会污染已保存作品，单元测试验证失败后原记录和重试。
 - 测试等待「正在打开作品…」结束后才填写新作品，避免在尚不可交互的编辑区输入；保存失败回归先确认失败状态再测试离开保护。连续输入合并由原历史单元测试覆盖，选色回归不依赖机器性能恰好落在 900ms 分组窗口内。
 - WebKit 回归还发现恢复后的 IDB `File` 在后续写入后可能变为不可读（解码报 `InvalidStateError`，读取字节报 `NotFoundError`）。导入与读取作品时改为持有独立 Blob 字节副本，读取不改写旧记录、版本、ID、时间或图片字节。共享小卡测试显式写入 0.3 使用的 File 记录，再恢复、保存、切换布局并实际导出；修复后的桌面 / 手机 WebKit 定向重复验证通过。

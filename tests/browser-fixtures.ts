@@ -19,12 +19,13 @@ export const test = base.extend({
     use,
     info,
   ) => {
-    if (browserName !== 'webkit' || process.platform !== 'win32') {
+    if (browserName !== 'webkit') {
       await use(context)
       return
     }
-    // Windows WebKit cannot store IDB Blobs in ephemeral contexts. A fresh,
-    // per-test persistent profile tests real disk storage without mocking IDB.
+    // Use a fresh ordinary profile for WebKit on every platform. Ephemeral
+    // contexts have different Blob storage limits; these flows verify normal
+    // local saving, not private browsing. Keep IDB and disk storage real.
     // Keep the directory name ASCII and short: Windows WebKit's SQLite path
     // handling fails with Unicode test titles. Each test still gets a fresh profile.
     await mkdir(info.project.outputDir, { recursive: true })
@@ -44,4 +45,18 @@ export const test = base.extend({
       await persistent.close()
     }
   },
+})
+
+test.afterEach(async ({ page, browserName }, info) => {
+  if (info.status !== info.expectedStatus) {
+    // Keep useful failure evidence in CI logs without uploading profiles/photos.
+    console.error('Browser failure context', {
+      browserName,
+      url: page.url(),
+      alerts: await page
+        .getByRole('alert')
+        .allTextContents()
+        .catch(() => []),
+    })
+  }
 })
