@@ -112,5 +112,11 @@ export function validateContent(project: ProjectState): string[] {
   if (card && !validCardDate(project.card?.date ?? ''))
     issues.push('请填写有效日期，或选择不显示日期。')
   if (!/^#[\da-f]{6}$/i.test(project.color)) issues.push('应援色需要是完整的六位十六进制颜色。')
+  if (
+    Object.values(project.templateTexts?.[project.templateId] ?? {}).some(
+      (entry) => !entry.hidden && countCharacters(entry.text) > 80,
+    )
+  )
+    issues.push('每条装饰文案最多 80 个字符，请稍作精简或隐藏。')
   return issues
 }

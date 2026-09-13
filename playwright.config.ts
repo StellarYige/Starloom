@@ -4,7 +4,11 @@ import { defineConfig } from '@playwright/test'
 export const chromiumChannel =
   process.env.PLAYWRIGHT_CHANNEL ||
   (process.platform === 'win32' && !process.env.CI ? 'msedge' : undefined)
-const sharedTests = ['**/core-workflow.spec.ts', '**/experience.spec.ts']
+const sharedTests = [
+  '**/core-workflow.spec.ts',
+  '**/experience.spec.ts',
+  '**/project-files.spec.ts',
+]
 
 export default defineConfig({
   testDir: './tests',

@@ -20,6 +20,10 @@ export interface Crop {
   y: number
   zoom: number
 }
+export interface TemplateText {
+  text: string
+  hidden: boolean
+}
 export interface ProjectState {
   version: 2 | 3
   templateId: string
@@ -31,6 +35,8 @@ export interface ProjectState {
   color: string
   decorations: Record<Decoration, boolean>
   cropsByTemplate: Record<string, Record<Format, Crop>>
+  /** Absent entries retain the template defaults, including for existing works. */
+  templateTexts?: Record<string, Record<string, TemplateText>>
   /** Only version 3 records may contain a dual-photo card. Version 2 stays unchanged. */
   card?: PhotoCardState
 }
@@ -53,7 +59,7 @@ interface BaseLayer {
 }
 export interface TextLayer extends BaseLayer, Rect {
   type: 'text'
-  content: 'name' | 'birthday' | 'wish' | 'date' | { literal: string }
+  content: 'name' | 'birthday' | 'wish' | 'date' | { id: string; literal: string }
   font: 'sans' | 'serif'
   weight?: 400 | 500 | 600
   italic?: boolean

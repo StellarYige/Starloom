@@ -24,7 +24,7 @@ export const birthdayLetter: TemplateDefinition = {
       layers: [
         {
           type: 'text',
-          content: { literal: 'A LITTLE LOVE, JUST FOR YOU' },
+          content: { id: 'poster-kicker', literal: 'A LITTLE LOVE, JUST FOR YOU' },
           x: 62,
           y: 42,
           width: 660,
@@ -37,7 +37,7 @@ export const birthdayLetter: TemplateDefinition = {
         },
         {
           type: 'text',
-          content: { literal: 'BIRTHDAY EDITION' },
+          content: { id: 'poster-edition', literal: 'BIRTHDAY EDITION' },
           x: 720,
           y: 42,
           width: 220,
@@ -50,7 +50,7 @@ export const birthdayLetter: TemplateDefinition = {
         },
         {
           type: 'text',
-          content: { literal: 'Happy birthday,' },
+          content: { id: 'poster-heading', literal: 'Happy birthday,' },
           x: 57,
           y: 90,
           width: 880,
@@ -74,7 +74,7 @@ export const birthdayLetter: TemplateDefinition = {
         { type: 'rect', x: 785, y: 289, width: 130, height: 144, color: 'paper', opacity: 0.96 },
         {
           type: 'text',
-          content: { literal: 'YOUR DAY' },
+          content: { id: 'poster-photo-label', literal: 'YOUR DAY' },
           x: 792,
           y: 309,
           width: 116,
@@ -150,7 +150,7 @@ export const birthdayLetter: TemplateDefinition = {
         },
         {
           type: 'text',
-          content: { literal: 'ALL MY LOVE, ALWAYS.' },
+          content: { id: 'poster-footer', literal: 'ALL MY LOVE, ALWAYS.' },
           x: 64,
           y: 1208,
           width: 450,
@@ -162,7 +162,7 @@ export const birthdayLetter: TemplateDefinition = {
         },
         {
           type: 'text',
-          content: { literal: '♡' },
+          content: { id: 'poster-heart', literal: '♡' },
           x: 890,
           y: 1205,
           width: 47,
@@ -197,7 +197,7 @@ export const birthdayLetter: TemplateDefinition = {
         { type: 'rect', x: 222, y: 102, width: 556, height: 58, color: 'paper', opacity: 0.96 },
         {
           type: 'text',
-          content: { literal: 'HAPPY BIRTHDAY' },
+          content: { id: 'avatar-heading', literal: 'HAPPY BIRTHDAY' },
           x: 238,
           y: 115,
           width: 524,

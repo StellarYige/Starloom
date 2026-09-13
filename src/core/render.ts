@@ -11,13 +11,15 @@ export const fontFamily = {
   serif: '"Cormorant Garamond", "Noto Sans SC", serif',
 }
 export function textContent(layer: TextLayer, project: ProjectState) {
-  return typeof layer.content === 'object'
-    ? layer.content.literal
-    : layer.content === 'birthday'
-      ? birthdayText(project)
-      : layer.content === 'date'
-        ? (project.card?.date ?? '').replaceAll('-', '.')
-        : project[layer.content]
+  if (typeof layer.content === 'object') {
+    const value = project.templateTexts?.[project.templateId]?.[layer.content.id]
+    return value?.hidden ? '' : (value?.text ?? layer.content.literal)
+  }
+  return layer.content === 'birthday'
+    ? birthdayText(project)
+    : layer.content === 'date'
+      ? (project.card?.date ?? '').replaceAll('-', '.')
+      : project[layer.content]
 }
 function fontSpec(layer: TextLayer, size = layer.size) {
   return `${layer.italic ? 'italic ' : ''}${layer.weight ?? (layer.font === 'serif' ? 500 : 400)} ${size}px ${fontFamily[layer.font]}`
@@ -174,7 +176,7 @@ export function renderArtwork(
       )
       if (fit.overflow)
         issues.push(
-          `${layer.content === 'name' ? '姓名' : layer.content === 'wish' ? (format === 'card' ? '短句' : '祝福语') : '文字'}在${format === 'avatar' ? '头像' : format === 'card' ? '小卡' : '贺图'}中放不下，请缩短内容或减少换行。`,
+          `${layer.content === 'name' ? '姓名' : layer.content === 'wish' ? (format === 'card' ? '短句' : '祝福语') : typeof layer.content === 'object' ? '装饰文案' : '文字'}在${format === 'avatar' ? '头像' : format === 'card' ? '小卡' : '贺图'}中放不下，请缩短内容或减少换行。`,
         )
       ctx.font = fontSpec(layer, fit.size)
       ctx.fillStyle = colors[layer.color]

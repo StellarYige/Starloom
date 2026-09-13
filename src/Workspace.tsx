@@ -10,6 +10,7 @@ import {
   Plus,
   Sparkle,
   Trash2,
+  Upload,
 } from 'lucide-react'
 import App from './App'
 import PhotoCardEditor from './PhotoCardEditor'
@@ -19,6 +20,7 @@ import { Modal } from './components/Modal'
 import { templates } from './templates'
 import { countCharacters, createId, createProject } from './core/project'
 import { decodePhoto, loadSample } from './core/photos'
+import { importProjectFile } from './core/project-file'
 import {
   activateWork,
   copyWork,
@@ -62,6 +64,9 @@ export default function Workspace() {
   const [works, setWorks] = useState<WorkSummary[]>([])
   const [active, setActive] = useState<WorkRecord | null>(null)
   const [view, setView] = useState<'library' | 'editor'>('library')
+  const viewRef = useRef(view)
+  viewRef.current = view
+  const importInput = useRef<HTMLInputElement>(null)
   const [session, setSession] = useState(0)
   const [busy, setBusy] = useState(true)
   const busyRef = useRef(false)
@@ -85,6 +90,11 @@ export default function Workspace() {
       if (sequence === listSequence.current) setError(message(error))
     }
   }, [])
+  // Saving content and thumbnails used to scan every work (including its photos)
+  // while the library was invisible. Refresh only when the user can see the list.
+  const onSaved = useCallback(() => {
+    if (viewRef.current === 'library') void refresh()
+  }, [refresh])
   const show = useCallback((work: WorkRecord, isTemporary = false) => {
     setActive(work)
     setTemporary(isTemporary)
@@ -217,9 +227,7 @@ export default function Workspace() {
             key={`${active.id}:${session}`}
             work={active}
             temporary={temporary}
-            onSaved={() => {
-              void refresh()
-            }}
+            onSaved={onSaved}
             onLibrary={() => {
               setView('library')
               void refresh()
@@ -230,9 +238,7 @@ export default function Workspace() {
             key={`${active.id}:${session}`}
             work={active}
             temporary={temporary}
-            onSaved={() => {
-              void refresh()
-            }}
+            onSaved={onSaved}
             onNew={newWork}
             onLibrary={() => {
               setView('library')
@@ -282,6 +288,30 @@ export default function Workspace() {
             </h1>
           </div>
           <div className="library-create-actions">
+            <input
+              ref={importInput}
+              type="file"
+              hidden
+              accept=".starloom,application/json"
+              aria-label="导入工程文件"
+              onChange={(event) => {
+                const file = event.target.files?.[0]
+                event.target.value = ''
+                if (!file) return
+                void operate(async () => {
+                  const work = await importProjectFile(file)
+                  show(work)
+                }).catch((error) => setError(message(error)))
+              }}
+            />
+            <button
+              className="secondary-button"
+              disabled={busy}
+              onClick={() => importInput.current?.click()}
+            >
+              <Upload size={17} />
+              导入工程
+            </button>
             <button
               className="secondary-button"
               disabled={busy}
@@ -306,7 +336,8 @@ export default function Workspace() {
         </section>
         <p className="library-privacy">
           <LockKeyhole size={15} />
-          作品仅保存在当前浏览器资料与站点，不会上传或跨设备同步。无痕窗口结束、清理网站数据或存储回收可能丢失作品，请及时下载重要成品。
+          作品仅保存在当前浏览器资料与站点，不会上传或跨设备同步。请导出工程文件备份照片和编辑内容，可在这里导入为新作品；PNG
+          仅保存成品图片。
         </p>
         {(error || warning) && (
           <div className="library-message" role="alert">

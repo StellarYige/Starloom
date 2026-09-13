@@ -48,7 +48,7 @@ export const cardTemplates: CardTemplateDefinition[] = [
         { type: 'rect', x: 46, y: 46, width: 808, height: 1108, color: 'paper' },
         {
           type: 'text',
-          content: { literal: 'TWO FRAMES, ONE STORY' },
+          content: { id: 'card-heading', literal: 'TWO FRAMES, ONE STORY' },
           x: 84,
           y: 77,
           width: 700,
@@ -97,7 +97,7 @@ export const cardTemplates: CardTemplateDefinition[] = [
         { type: 'photo', slot: 'second', x: 494, y: 456, width: 320, height: 304 },
         {
           type: 'text',
-          content: { literal: 'a moment to keep' },
+          content: { id: 'card-caption', literal: 'a moment to keep' },
           x: 505,
           y: 784,
           width: 294,
@@ -119,7 +119,7 @@ export const cardTemplates: CardTemplateDefinition[] = [
         },
         {
           type: 'text',
-          content: { literal: 'LITTLE MOMENTS /' },
+          content: { id: 'card-heading', literal: 'LITTLE MOMENTS /' },
           x: 70,
           y: 805,
           width: 400,

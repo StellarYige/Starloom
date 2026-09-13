@@ -5,6 +5,8 @@ import { ExportModal } from './components/ExportModal'
 import { LocalSaveNotice } from './components/LocalSaveNotice'
 import { CustomColorPicker } from './components/CustomColorPicker'
 import { TemporaryLeaveDialog } from './components/TemporaryLeaveDialog'
+import { TemplateTextSettings } from './components/TemplateTextSettings'
+import { ProjectFileExport } from './components/ProjectFileExport'
 import { useEditor } from './hooks/useEditor'
 import { cardTemplates, getCardTemplate } from './templates/photo-cards'
 import {
@@ -132,6 +134,12 @@ export default function PhotoCardEditor({
           <span>正在编辑</span>
           <strong>{work.title}</strong>
           <span>双照片电子小卡</span>
+          <ProjectFileExport
+            snapshot={
+              asset && secondAsset ? { title: work.title, project, asset, secondAsset } : null
+            }
+            disabled={editor.importing || editor.transitioning || !bitmap || !secondBitmap}
+          />
         </div>
         <section className="intro">
           <div>
@@ -482,6 +490,7 @@ export default function PhotoCardEditor({
                   ))}
                 </div>
               </fieldset>
+              <TemplateTextSettings project={project} change={editor.change} seal={editor.seal} />
               {!!issues.length && (
                 <p className="message error" role="alert">
                   {issues[0]}

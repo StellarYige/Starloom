@@ -1,5 +1,6 @@
 .current-work-label {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 12px;
   margin: 0 0 22px;
@@ -14,8 +15,60 @@
   color: #545e4d;
   font-weight: 500;
 }
-.current-work-label > span:last-child {
+.current-work-label > span:last-of-type {
   margin-left: auto;
+}
+.project-file-export {
+  margin-left: auto;
+  max-width: 100%;
+}
+.project-file-export > button {
+  min-height: 44px;
+  white-space: nowrap;
+}
+.template-text-settings {
+  margin-top: 22px;
+  border-top: 1px solid #e3e5db;
+  padding-top: 12px;
+}
+.template-text-settings > summary {
+  cursor: pointer;
+  padding: 10px 0;
+  font-size: 13px;
+  color: #55614a;
+}
+.template-text-field {
+  margin-top: 18px;
+}
+.template-text-field textarea {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid #dce2cc;
+  border-radius: 6px;
+  background: #fffef9;
+  color: #45513d;
+  resize: vertical;
+}
+.template-text-field textarea:disabled {
+  opacity: 0.5;
+}
+.template-text-visible,
+.template-text-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: #818576;
+}
+.template-text-visible {
+  min-height: 44px;
+}
+.template-text-actions {
+  justify-content: space-between;
+}
+.template-text-actions button {
+  min-height: 44px;
 }
 .library-link {
   white-space: nowrap;
@@ -488,7 +541,7 @@
     gap: 8px;
     font-size: 10px;
   }
-  .current-work-label > span:last-child {
+  .current-work-label > span:last-of-type {
     display: none;
   }
   .current-work-label strong {

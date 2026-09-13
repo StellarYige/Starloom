@@ -2,6 +2,7 @@ import type { Crop, LegacyProjectState, PhotoAsset, ProjectState } from './types
 import { artworkTemplate, getTemplate } from '../templates'
 import { isPhotoCard } from './photo-card'
 import { birthdayText, countCharacters, createId, graphemes, migrateProject } from './project'
+import { isRecord, validTemplateTexts } from './template-text'
 
 export interface Draft {
   schemaVersion: 1
@@ -162,6 +163,7 @@ function validContent(
     !!p.decorations &&
     typeof p.decorations.sparkles === 'boolean' &&
     typeof p.decorations.lines === 'boolean' &&
+    validTemplateTexts(p.templateTexts) &&
     typeof asset.name === 'string' &&
     typeof asset.sample === 'boolean' &&
     [asset.width, asset.height, asset.originalWidth, asset.originalHeight].every(
@@ -193,7 +195,7 @@ export function isValidWork(value: unknown): value is WorkRecord {
       validPhoto(w.secondAsset, card.secondPhotoId) &&
       typeof card.date === 'string' &&
       card.date.length <= 20 &&
-      !!card.cropsByLayout &&
+      isRecord(card.cropsByLayout) &&
       !!card.cropsByLayout[project.templateId] &&
       Object.values(card.cropsByLayout).every(
         (pair) => !!pair && validCrop(pair.first) && validCrop(pair.second),
@@ -202,7 +204,7 @@ export function isValidWork(value: unknown): value is WorkRecord {
       project?.version === 2 &&
       project.card === undefined &&
       w.secondAsset === undefined &&
-      !!crops &&
+      isRecord(crops) &&
       !!crops[project.templateId] &&
       Object.values(crops).every(
         (pair) => !!pair && validCrop(pair.avatar) && validCrop(pair.poster),

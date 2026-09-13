@@ -32,6 +32,8 @@ import { ThemeSelector } from './components/ThemeSelector'
 import { LocalSaveNotice } from './components/LocalSaveNotice'
 import { CustomColorPicker } from './components/CustomColorPicker'
 import { TemporaryLeaveDialog } from './components/TemporaryLeaveDialog'
+import { TemplateTextSettings } from './components/TemplateTextSettings'
+import { ProjectFileExport } from './components/ProjectFileExport'
 import { useEditor } from './hooks/useEditor'
 import { getTemplate } from './templates'
 import { birthdayText, countCharacters, daysInMonth, validateContent } from './core/project'
@@ -289,6 +291,10 @@ export default function App({
           <span>正在编辑</span>
           <strong>{work.title}</strong>
           <span>仅保存在当前浏览器</span>
+          <ProjectFileExport
+            snapshot={asset ? { title: work.title, project, asset } : null}
+            disabled={editor.importing || editor.transitioning || !bitmap}
+          />
         </div>
         <section className="intro">
           <div>
@@ -650,6 +656,11 @@ export default function App({
                     />
                     <p className="field-hint">完整祝福会出现在贺图上，头像保留姓名与生日。</p>
                   </div>
+                  <TemplateTextSettings
+                    project={project}
+                    change={editor.change}
+                    seal={editor.seal}
+                  />
                   {!!issues.length && (
                     <div className="message error" role="alert">
                       <CircleAlert size={15} />

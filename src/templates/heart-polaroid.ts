@@ -29,7 +29,7 @@ export const heartPolaroid: TemplateDefinition = {
         { type: 'rect', x: 690, y: 67, width: 164, height: 44, color: 'soft', decoration: 'lines' },
         {
           type: 'text',
-          content: { literal: 'a moment to keep' },
+          content: { id: 'avatar-caption', literal: 'a moment to keep' },
           x: 152,
           y: 721,
           width: 696,
@@ -94,7 +94,7 @@ export const heartPolaroid: TemplateDefinition = {
         { type: 'rect', x: 0, y: 0, width: 1000, height: 1250, color: 'soft' },
         {
           type: 'text',
-          content: { literal: 'MOMENTS OF YOU' },
+          content: { id: 'poster-kicker', literal: 'MOMENTS OF YOU' },
           x: 65,
           y: 39,
           width: 550,
@@ -106,7 +106,7 @@ export const heartPolaroid: TemplateDefinition = {
         },
         {
           type: 'text',
-          content: { literal: '01 / BIRTHDAY' },
+          content: { id: 'poster-edition', literal: '01 / BIRTHDAY' },
           x: 685,
           y: 39,
           width: 250,
@@ -124,7 +124,7 @@ export const heartPolaroid: TemplateDefinition = {
         { type: 'rect', x: 701, y: 95, width: 201, height: 125, color: 'paper' },
         {
           type: 'text',
-          content: { literal: 'THE DAY I KEEP' },
+          content: { id: 'poster-photo-label', literal: 'THE DAY I KEEP' },
           x: 716,
           y: 113,
           width: 171,
@@ -150,7 +150,7 @@ export const heartPolaroid: TemplateDefinition = {
         },
         {
           type: 'text',
-          content: { literal: 'Happy you day.' },
+          content: { id: 'poster-heading', literal: 'Happy you day.' },
           x: 120,
           y: 796,
           width: 685,
@@ -201,7 +201,7 @@ export const heartPolaroid: TemplateDefinition = {
         },
         {
           type: 'text',
-          content: { literal: 'A SMALL FRAME. A WHOLE LOT OF LOVE.' },
+          content: { id: 'poster-footer', literal: 'A SMALL FRAME. A WHOLE LOT OF LOVE.' },
           x: 76,
           y: 1205,
           width: 755,

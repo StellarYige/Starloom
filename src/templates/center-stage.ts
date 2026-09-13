@@ -27,7 +27,7 @@ export const centerStage: TemplateDefinition = {
         { type: 'rect', x: 247, y: 65, width: 13, height: 489, color: 'accent' },
         {
           type: 'text',
-          content: { literal: 'YOUR' },
+          content: { id: 'avatar-heading-top', literal: 'YOUR' },
           x: 93,
           y: 237,
           width: 170,
@@ -40,7 +40,7 @@ export const centerStage: TemplateDefinition = {
         },
         {
           type: 'text',
-          content: { literal: 'DAY.' },
+          content: { id: 'avatar-heading-bottom', literal: 'DAY.' },
           x: 92,
           y: 284,
           width: 177,
@@ -93,7 +93,7 @@ export const centerStage: TemplateDefinition = {
         },
         {
           type: 'text',
-          content: { literal: 'BORN TO SHINE' },
+          content: { id: 'avatar-footer', literal: 'BORN TO SHINE' },
           x: 245,
           y: 888,
           width: 510,
@@ -116,7 +116,7 @@ export const centerStage: TemplateDefinition = {
         { type: 'photo', x: 371, y: 66, width: 563, height: 868 },
         {
           type: 'text',
-          content: { literal: 'THE SPOTLIGHT IS YOURS' },
+          content: { id: 'poster-kicker', literal: 'THE SPOTLIGHT IS YOURS' },
           x: 61,
           y: 42,
           width: 700,
@@ -128,7 +128,7 @@ export const centerStage: TemplateDefinition = {
         },
         {
           type: 'text',
-          content: { literal: 'TODAY,' },
+          content: { id: 'poster-heading', literal: 'TODAY,' },
           x: 60,
           y: 109,
           width: 285,
@@ -157,7 +157,7 @@ export const centerStage: TemplateDefinition = {
         { type: 'rect', x: 58, y: 523, width: 259, height: 146, color: 'accent' },
         {
           type: 'text',
-          content: { literal: 'BIRTHDAY / LIVE' },
+          content: { id: 'poster-photo-label', literal: 'BIRTHDAY / LIVE' },
           x: 75,
           y: 543,
           width: 222,
@@ -181,7 +181,7 @@ export const centerStage: TemplateDefinition = {
         },
         {
           type: 'text',
-          content: { literal: 'ALL EYES\nON YOU.' },
+          content: { id: 'poster-message', literal: 'ALL EYES\nON YOU.' },
           x: 58,
           y: 730,
           width: 280,
@@ -221,7 +221,7 @@ export const centerStage: TemplateDefinition = {
         },
         {
           type: 'text',
-          content: { literal: 'HAPPY BIRTHDAY. KEEP SHINING.' },
+          content: { id: 'poster-footer', literal: 'HAPPY BIRTHDAY. KEEP SHINING.' },
           x: 62,
           y: 1201,
           width: 800,
